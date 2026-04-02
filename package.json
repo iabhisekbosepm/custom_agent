@@ -1,0 +1,28 @@
+{
+  "name": "custom-agents",
+  "version": "0.1.0",
+  "description": "Custom AI coding assistant runtime",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "custom-agents": "src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts",
+    "test": "bun test",
+    "typecheck": "bun x tsc --noEmit"
+  },
+  "dependencies": {
+    "diff": "^8.0.4",
+    "ink": "^5.1.0",
+    "react": "^18.3.1",
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/diff": "^8.0.0",
+    "@types/react": "^18.3.0",
+    "bun-types": "^1.2.0"
+  }
+}

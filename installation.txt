@@ -1,0 +1,44 @@
+  1. install.sh (new)                                                                                                                                                            
+                                                                                                                                                                                 
+  - Checks for bun and auto-installs if missing                                                                                                                                  
+  - Copies project source to ~/.custom-agents-cli/ via rsync (excludes node_modules, .env, .git)                                                                                 
+  - Runs bun install in the installed copy                                                                                                                                     
+  - Interactively prompts for API key, base URL, and model — writes to ~/.custom-agents/config.env                                                                             
+  - Writes a launcher script to ~/.local/bin/custom-agents that sources global config when no local .env exists                                                                
+  - Adds ~/.local/bin to PATH in the user's shell rc if needed
+  - Supports --update flag to re-copy source + deps without re-prompting for config
+
+  2. uninstall.sh (new)
+
+  - Removes ~/.custom-agents-cli/ (installed source)
+  - Removes ~/.local/bin/custom-agents (launcher)
+  - Asks before deleting ~/.custom-agents/ (user config/data)
+  - Notes that the PATH entry in shell rc is left for manual cleanup
+
+  3. custom-agents.sh (modified)
+
+  - Added 3-tier config resolution:
+    a. .env in cwd — Bun auto-loads, script does nothing
+    b. ~/.custom-agents/config.env — global fallback, sourced explicitly
+    c. .env next to the script — development fallback (original behavior)
+
+
+    =============
+
+
+    Install (one-liner, no clone needed)
+                                                                                                                                                                                 
+  curl -fsSL https://raw.githubusercontent.com/iabhisekbosepm/custom_agent/main/install.sh | bash
+                                                                                                                                                                                 
+  Update                                                                                                                                                                       
+                                                                                                                                                                               
+  curl -fsSL https://raw.githubusercontent.com/iabhisekbosepm/custom_agent/main/install.sh | bash -s -- --update                                                               
+
+  Uninstall
+
+  curl -fsSL https://raw.githubusercontent.com/iabhisekbosepm/custom_agent/main/uninstall.sh | bash
+
+  Use from any project
+
+  cd ~/my-project
+  custom-agents
