@@ -80,7 +80,7 @@ else
   if [[ -f "$CONFIG_FILE" ]]; then
     echo ""
     echo "Config already exists at $CONFIG_FILE."
-    read -rp "Overwrite it? [y/N] " overwrite
+    read -rp "Overwrite it? [y/N] " overwrite </dev/tty
     overwrite="$(printf '%s' "$overwrite" | tr '[:upper:]' '[:lower:]')"
     if [[ "$overwrite" != "y" ]]; then
       echo "Keeping existing config."
@@ -96,16 +96,16 @@ else
     echo "── Configure CustomAgents ──"
     echo ""
 
-    read -rp "OpenAI API key (or OpenRouter key): " api_key
+    read -rp "OPENAI_API_KEY (OpenAI or OpenRouter key): " api_key </dev/tty
     if [[ -z "$api_key" ]]; then
       echo "WARNING: No API key provided. You can set it later in $CONFIG_FILE"
       api_key="sk-your-key-here"
     fi
 
-    read -rp "API base URL [https://openrouter.ai/api/v1]: " base_url
+    read -rp "OPENAI_BASE_URL [https://openrouter.ai/api/v1]: " base_url </dev/tty
     base_url="${base_url:-https://openrouter.ai/api/v1}"
 
-    read -rp "Model [openrouter/auto]: " model
+    read -rp "MODEL name [openrouter/auto]: " model </dev/tty
     model="${model:-openrouter/auto}"
 
     cat > "$CONFIG_FILE" <<EOF

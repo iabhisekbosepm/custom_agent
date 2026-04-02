@@ -42,7 +42,7 @@ fi
 if [[ -d "$CONFIG_DIR" ]]; then
   echo ""
   echo "$CONFIG_DIR contains your config and project data."
-  read -rp "Delete it? [y/N] " confirm
+  read -rp "Delete it? [y/N] " confirm </dev/tty
   confirm="$(printf '%s' "$confirm" | tr '[:upper:]' '[:lower:]')"
   if [[ "$confirm" == "y" ]]; then
     rm -rf "$CONFIG_DIR"
