@@ -9,6 +9,10 @@ const TaskCreateInput = z.object({
     .record(z.unknown())
     .optional()
     .describe("Arbitrary metadata to attach to the task"),
+  blocked_by: z
+    .array(z.string())
+    .optional()
+    .describe("IDs of tasks that must complete before this task can start"),
 });
 
 type TaskCreateInput = z.infer<typeof TaskCreateInput>;
@@ -27,6 +31,7 @@ export function createTaskCreateTool(taskManager: TaskManager): Tool<TaskCreateI
           description: input.description,
           parentId: input.parent_id,
           metadata: input.metadata,
+          blockedBy: input.blocked_by,
         });
         return {
           content: `Task created successfully.\nID: ${task.id}\nStatus: ${task.status}\nDescription: ${task.description}`,

@@ -21,6 +21,18 @@ export interface HookPayloads {
     removedMessages: number;
     strategy: string;
   };
+  "team:create": { teamId: string; name: string; teammateCount: number };
+  "team:start": { teamId: string; name: string };
+  "team:teammate:start": { teamId: string; teammateId: string; agentName: string };
+  "team:teammate:end": {
+    teamId: string;
+    teammateId: string;
+    agentName: string;
+    status: string;
+    output: string;
+  };
+  "team:message": { teamId: string; from: string; to: string; content: string };
+  "team:complete": { teamId: string; name: string; status: string; duration: number };
 }
 
 export type HookEvent = keyof HookPayloads;

@@ -10,6 +10,7 @@ import type { HookManager } from "../hooks/index.js";
 import type { TaskManager } from "../tasks/TaskManager.js";
 import type { AgentRouter } from "../agents/AgentRouter.js";
 import type { SkillRegistry } from "../skills/index.js";
+import type { TeamManager } from "../teams/TeamManager.js";
 import { REPL } from "../screens/REPL.js";
 
 /** Runtime dependencies available throughout the React tree. */
@@ -25,6 +26,7 @@ export interface RuntimeContextValue {
   taskManager: TaskManager;
   agentRouter: AgentRouter;
   skillRegistry: SkillRegistry;
+  teamManager: TeamManager;
 }
 
 const RuntimeContext = createContext<RuntimeContextValue | null>(null);
@@ -50,6 +52,7 @@ interface AppProps {
   taskManager: TaskManager;
   agentRouter: AgentRouter;
   skillRegistry: SkillRegistry;
+  teamManager: TeamManager;
 }
 
 export function App({
@@ -65,6 +68,7 @@ export function App({
   taskManager,
   agentRouter,
   skillRegistry,
+  teamManager,
 }: AppProps) {
   return (
     <RuntimeContext.Provider
@@ -80,6 +84,7 @@ export function App({
         taskManager,
         agentRouter,
         skillRegistry,
+        teamManager,
       }}
     >
       <AppStateProvider store={store}>

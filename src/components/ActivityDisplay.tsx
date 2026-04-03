@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import { useAppState } from "../state/AppState.js";
 import { useSpinner } from "../hooks/useSpinner.js";
 import { AgentTaskList } from "./AgentTaskList.js";
+import { TeamDisplay } from "./TeamDisplay.js";
 
 export function ActivityDisplay() {
   const state = useAppState();
@@ -46,6 +47,9 @@ export function ActivityDisplay() {
           </Box>
           {tc.name === "agent_spawn" && tc.status === "running" && (
             <AgentTaskList />
+          )}
+          {tc.name === "team_create" && tc.status === "running" && (
+            <TeamDisplay teams={state.activeTeams} />
           )}
         </React.Fragment>
       ))}

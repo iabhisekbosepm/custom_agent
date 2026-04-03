@@ -23,6 +23,14 @@ export interface TaskState {
   error?: string;
   /** Arbitrary metadata attached to the task. */
   metadata: Record<string, unknown>;
+  /** IDs of tasks that must complete before this task can start. */
+  blockedBy: string[];
+  /** IDs of tasks that this task blocks. */
+  blocks: string[];
+  /** ID of the agent that claimed this task, if any. */
+  claimedBy: string | null;
+  /** Timestamp when the task was claimed. */
+  claimedAt: number | null;
 }
 
 /** Options for creating a new task. */
@@ -30,6 +38,7 @@ export interface CreateTaskOptions {
   description: string;
   parentId?: string;
   metadata?: Record<string, unknown>;
+  blockedBy?: string[];
 }
 
 /** Create a new task in pending state. */
@@ -43,6 +52,10 @@ export function createTask(opts: CreateTaskOptions): TaskState {
     updatedAt: now,
     parentId: opts.parentId,
     metadata: opts.metadata ?? {},
+    blockedBy: opts.blockedBy ?? [],
+    blocks: [],
+    claimedBy: null,
+    claimedAt: null,
   };
 }
 

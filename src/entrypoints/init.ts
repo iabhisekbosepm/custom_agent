@@ -53,6 +53,13 @@ import { SkillRegistry } from "../skills/index.js";
 import { builtinSkills } from "../skills/builtinSkills.js";
 import { PluginManager } from "../plugins/index.js";
 import { ServiceManager } from "../services/index.js";
+import { TeamManager } from "../teams/TeamManager.js";
+// Team tools
+import { createTeamCreateTool } from "../tools/TeamCreateTool/TeamCreateTool.js";
+import { createTeamStatusTool } from "../tools/TeamStatusTool/TeamStatusTool.js";
+import { createTeamMessageTool } from "../tools/TeamMessageTool/TeamMessageTool.js";
+import { createTeamCheckMessagesTool } from "../tools/TeamCheckMessagesTool/TeamCheckMessagesTool.js";
+import { createTeamTaskClaimTool } from "../tools/TeamTaskClaimTool/TeamTaskClaimTool.js";
 
 /** Base directory for all persisted data. */
 const DATA_DIR = join(process.cwd(), ".custom-agents");
@@ -102,6 +109,10 @@ Communication tools:
 - send_message: Append a system message (info/warning/error) to the conversation.
 - synthetic_output: Return pre-formatted content (markdown, json, table).
 
+Team coordination:
+- team_create: Create and run a team of agents working in parallel on related tasks.
+- team_status: Check the status of a team and its teammates.
+
 Slash commands available to users: /explain, /commit, /status, /find, /diff, /brief, /plan, /agent
 
 Workflow for understanding code:
@@ -126,6 +137,7 @@ export interface InitResult {
   skillRegistry: SkillRegistry;
   pluginManager: PluginManager;
   serviceManager: ServiceManager;
+  teamManager: TeamManager;
 }
 
 /**
@@ -244,6 +256,19 @@ export async function initialize(): Promise<InitResult> {
   registry.register(SendMessageTool);
   registry.register(SyntheticOutputTool);
 
+  // Create team manager
+  const teamManager = new TeamManager(agentRouter, taskManager, hooks, registry, log);
+
+  // Team tools (need teamManager + registry for scoped registries)
+  // team_message, team_check_messages, team_task_claim are registered in the base
+  // registry so they are available for buildTeammateRegistry to pick up.
+  registry.register(createTeamMessageTool(teamManager, hooks));
+  registry.register(createTeamCheckMessagesTool(teamManager));
+  registry.register(createTeamTaskClaimTool(taskManager));
+  // Lead-only tools
+  registry.register(createTeamCreateTool(teamManager, config, registry));
+  registry.register(createTeamStatusTool(teamManager));
+
   log.info("Registered tools", {
     tools: registry.list().map((t) => t.name),
   });
@@ -308,5 +333,6 @@ export async function initialize(): Promise<InitResult> {
     skillRegistry,
     pluginManager,
     serviceManager,
+    teamManager,
   };
 }

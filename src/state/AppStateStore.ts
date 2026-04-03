@@ -11,6 +11,21 @@ export interface ActiveToolCall {
   status: "pending" | "running" | "completed";
 }
 
+export interface TeamUITeammate {
+  teammateId: string;
+  agentName: string;
+  status: string;
+  activeToolCalls: ActiveToolCall[];
+  taskDescription: string;
+}
+
+export interface TeamUIState {
+  teamId: string;
+  name: string;
+  status: string;
+  teammates: TeamUITeammate[];
+}
+
 export interface AppState {
   /** Full conversation history. */
   messages: Message[];
@@ -44,6 +59,8 @@ export interface AppState {
   turnStartedAt: number | null;
   /** Approximate token count for the current turn. */
   turnTokenCount: number;
+  /** Active agent teams with real-time state. */
+  activeTeams: TeamUIState[];
 }
 
 export function createDefaultAppState(model: string): AppState {
@@ -64,6 +81,7 @@ export function createDefaultAppState(model: string): AppState {
     agentToolCalls: [],
     turnStartedAt: null,
     turnTokenCount: 0,
+    activeTeams: [],
   };
 }
 
