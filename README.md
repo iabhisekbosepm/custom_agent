@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/custom--agents-v0.1.0-blue?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/custom--agents-v1.1.0-blue?style=for-the-badge" alt="Version" />
 </p>
 
 <h1 align="center">Custom Agents</h1>
