@@ -71,12 +71,14 @@ Any LLM provider that speaks the OpenAI API format:
 
 | | | |
 |---|---|---|
-| **🤖 3 Specialized Agents** | **🔧 30+ Built-in Tools** | **⚡ Slash Commands** |
+| **🤖 3 Specialized Agents** | **🔧 35+ Built-in Tools** | **⚡ Slash Commands** |
 | Explorer, Coder, Reviewer — each with scoped permissions and tool access | File I/O, grep, glob, shell, web search, task management, LSP, and more | `/explain`, `/commit`, `/diff`, `/plan`, `/find`, `/status`, `/agent` and more |
 | **🧠 Context Compaction** | **💾 Session Persistence** | **🔌 Plugin System** |
 | Auto-summarizes conversation when approaching token budget (120K default) | Resume previous sessions — transcripts are saved and reloadable | Extend with custom tools, hooks, and skills |
 | **📋 Task Management** | **🏗️ Plan Mode** | **🧩 Custom Agents** |
 | Create, track, and manage tasks with dependencies — all from the terminal | Explore and plan before coding. Approve the approach, then execute | Define your own agents with custom tool sets and system prompts |
+| **👥 Agent Teams** | **📬 Inter-Agent Mailbox** | **🔗 Task Dependencies** |
+| Spawn N agents that run in parallel, coordinated by a team lead | Teammates communicate via in-memory mailbox (send, broadcast, peek) | Tasks support blockedBy/blocks with atomic claiming and auto-unblock |
 
 ---
 
@@ -88,6 +90,7 @@ Any LLM provider that speaks the OpenAI API format:
 | Manually apply suggested edits | Agent writes and edits files directly, with diffs |
 | Switch between browser and terminal | Everything happens in your terminal |
 | One-size-fits-all generic AI | Specialized agents (explorer, coder, reviewer) for different tasks |
+| Run one task at a time | Spawn parallel agent teams that coordinate and communicate |
 | Vendor lock-in to one provider | Use any OpenAI-compatible API — switch models anytime |
 
 ---
@@ -139,11 +142,29 @@ Three built-in agents, each designed for a specific workflow:
 
 You can also create **custom agents** with `/agent` — define your own tool sets, system prompts, and constraints.
 
+### Agent Teams
+
+Spawn multiple agents that work **in parallel** on related tasks, coordinated by a team lead:
+
+| Feature | Description |
+|---------|-------------|
+| **Parallel Execution** | All teammates run concurrently via `Promise.allSettled()` |
+| **In-Memory Mailbox** | Teammates communicate via send, broadcast, and peek messages |
+| **Task Dependencies** | Tasks support `blockedBy`/`blocks` with atomic claiming and auto-unblock |
+| **Scoped Registries** | Each teammate gets only the tools their agent type is allowed to use |
+| **Real-time UI** | Terminal displays team status, teammate progress, and active tool calls |
+
+```
+> Create a team with an explorer and a reviewer to analyze the src/query/ directory
+```
+
+The lead agent creates the team, teammates run in parallel, and the lead synthesizes their outputs into a final result.
+
 ---
 
 <h2 id="tools">Tools</h2>
 
-30+ built-in tools across 8 categories:
+35+ built-in tools across 9 categories:
 
 | Category | Tools |
 |----------|-------|
@@ -153,6 +174,7 @@ You can also create **custom agents** with `/agent` — define your own tool set
 | **Web** | `web_search`, `web_fetch` |
 | **Task Management** | `task_create`, `task_list`, `task_get`, `task_update`, `task_stop`, `task_output` |
 | **Agent Orchestration** | `agent_spawn`, `agent_create` |
+| **Team Coordination** | `team_create`, `team_status`, `team_message`, `team_check_messages`, `team_task_claim` |
 | **Code Quality** | `lsp`, `notebook_edit` |
 | **Mode Control** | `enter_plan_mode`, `exit_plan_mode` |
 
@@ -239,8 +261,9 @@ src/
 ├── services/     # Background services
 ├── skills/       # Slash commands
 ├── state/        # Application state management
-├── tasks/        # Task tracking system
-├── tools/        # 30+ built-in tools
+├── tasks/        # Task tracking with dependencies + claiming
+├── teams/        # Agent Teams (parallel multi-agent coordination)
+├── tools/        # 35+ built-in tools
 ├── types/        # Shared types
 └── utils/        # Utilities (logger, diff, env, shutdown)
 ```
@@ -251,16 +274,16 @@ src/
 
 - [x] Core query loop with streaming
 - [x] 3 specialized agents (explorer, coder, reviewer)
-- [x] 30+ built-in tools
+- [x] 35+ built-in tools
 - [x] Slash commands
 - [x] Context compaction
 - [x] Session persistence
 - [x] One-liner install (`curl | bash`)
 - [x] Custom agent creation
+- [x] Agent Teams — parallel multi-agent coordination with mailbox + task dependencies
 - [ ] RAG (Retrieval-Augmented Generation) for large codebases
 - [ ] MCP (Model Context Protocol) server support
 - [ ] Multi-model orchestration
-- [ ] Team/shared memory
 - [ ] VS Code extension
 
 ---
