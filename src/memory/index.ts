@@ -34,6 +34,17 @@ export class MemoryStore {
     this.log = log.child("memory");
   }
 
+  /**
+   * Create the base memory directories (project, user, session).
+   * Call once during startup to ensure the folder structure exists.
+   */
+  async init(): Promise<void> {
+    await mkdir(join(this.baseDir, "project"), { recursive: true });
+    await mkdir(join(this.baseDir, "user"), { recursive: true });
+    await mkdir(join(this.baseDir, "session", this.sessionId), { recursive: true });
+    this.log.debug("Memory directories initialized");
+  }
+
   private pathFor(kind: MemoryKind, key: string): string {
     if (kind === "session") {
       return join(this.baseDir, kind, this.sessionId, `${key}.json`);

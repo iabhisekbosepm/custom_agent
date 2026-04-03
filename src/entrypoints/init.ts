@@ -166,9 +166,10 @@ export async function initialize(): Promise<InitResult> {
   const sessionId = generateId();
   log.info(`Session: ${sessionId}`);
 
-  // Create memory store
+  // Create memory store and ensure directories exist
   const memoryDir = join(DATA_DIR, "memory");
   const memory = new MemoryStore(memoryDir, sessionId, log);
+  await memory.init();
 
   // Create session persistence
   const sessionPersistence = new SessionPersistence(DATA_DIR, log);

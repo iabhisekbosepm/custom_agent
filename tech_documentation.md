@@ -827,7 +827,7 @@ interface AppState {
 
 **File:** `src/memory/index.ts`
 
-File-based key-value storage organized by scope:
+File-based key-value storage organized by scope, with an in-memory cache layer for performance:
 
 | Scope | Lifetime | Path |
 |-------|----------|------|
@@ -835,15 +835,43 @@ File-based key-value storage organized by scope:
 | `user` | Permanent per user | `.custom-agents/memory/user/<key>.json` |
 | `session` | Per session only | `.custom-agents/memory/session/<id>/<key>.json` |
 
+Each entry is stored as a JSON file with metadata:
+
 ```typescript
-class MemoryStore {
-  get(kind, key): Promise<string | null>
-  set(kind, key, value): Promise<void>
-  delete(kind, key): Promise<boolean>
-  list(kind): Promise<string[]>
-  buildContext(kinds): Promise<string>    // For system prompt injection
+interface MemoryEntry {
+  key: string;
+  value: string;
+  kind: MemoryKind;       // "project" | "user" | "session"
+  updatedAt: number;      // Unix timestamp (Date.now())
 }
 ```
+
+### In-Memory Cache
+
+`MemoryStore` maintains a `Map<string, MemoryEntry>` cache keyed by `"kind:key"` to avoid redundant disk reads:
+
+- **`get()`** — returns from cache if present; otherwise reads from disk and populates cache
+- **`set()`** — writes to disk (`Bun.write`) and updates cache in the same call
+- **`delete()`** — removes the file from disk (`fs/promises.unlink`) and evicts from cache
+
+The cache is process-scoped (lives for the duration of the session) and has no TTL — entries remain cached until overwritten or deleted. This is safe because the `MemoryStore` is the sole writer; there are no external processes modifying the files.
+
+### API
+
+```typescript
+class MemoryStore {
+  init(): Promise<void>                    // Create scope directories on startup
+  get(kind, key): Promise<string | null>   // Read (cache-first, then disk)
+  set(kind, key, value): Promise<void>     // Write to disk + cache
+  delete(kind, key): Promise<boolean>      // Remove from disk + cache
+  list(kind): Promise<string[]>            // Enumerate keys via readdir
+  buildContext(kinds): Promise<string>     // For system prompt injection
+}
+```
+
+### Initialization
+
+`memory.init()` is called during startup (`init.ts`) to pre-create all scope directories (`project/`, `user/`, `session/<id>/`), ensuring the folder structure exists before any read or write operations.
 
 Memory context is built from `project` and `user` scopes and appended to the system prompt via the `memoryContext` field in `QueryConfig`.
 
