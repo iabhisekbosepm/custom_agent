@@ -66,6 +66,7 @@ export async function main(): Promise<void> {
     agentRouter,
     skillRegistry,
     teamManager,
+    kanbanStore,
   } = await initialize();
 
   // Launch the Ink app
@@ -84,6 +85,7 @@ export async function main(): Promise<void> {
       agentRouter={agentRouter}
       skillRegistry={skillRegistry}
       teamManager={teamManager}
+      kanbanStore={kanbanStore}
     />
   );
 

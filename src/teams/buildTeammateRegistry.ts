@@ -21,6 +21,7 @@ export function buildTeammateRegistry(
     "task_list",
     "task_get",
     "task_update",
+    "kanban",
   ];
 
   // Determine which base tools the agent can use

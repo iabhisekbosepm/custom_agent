@@ -1,10 +1,12 @@
 import type { AgentDefinition, AgentInstance } from "./AgentDefinition.js";
 import type { AppConfig } from "../types/config.js";
 import type { ToolRegistry } from "../tools/registry.js";
+import { ToolRegistry as ToolRegistryClass } from "../tools/registry.js";
 import type { HookManager } from "../hooks/index.js";
 import type { Logger } from "../utils/logger.js";
 import type { TaskManager } from "../tasks/TaskManager.js";
 import type { Message, UserMessage, SystemMessage } from "../types/messages.js";
+import type { KanbanStore } from "../kanban/KanbanStore.js";
 import { generateId } from "../utils/id.js";
 import { runQueryLoop } from "../query/query.js";
 import { createStore } from "../state/store.js";
@@ -23,6 +25,8 @@ export interface RunAgentOptions {
   onTaskCreated?: (taskId: string) => void;
   /** Called whenever the agent's internal tool calls change, for real-time UI updates. */
   onAgentActivity?: (toolCalls: ActiveToolCall[]) => void;
+  /** Optional KanbanStore for injecting board context into agent runs. */
+  kanbanStore?: KanbanStore;
 }
 
 /**
@@ -59,11 +63,39 @@ export async function runAgent(opts: RunAgentOptions): Promise<{
   // Append task tracking instructions so the agent creates visible subtasks
   const taskTrackingPrompt = `\n\nTask Tracking:\nYour agent task ID is "${task.id}". Before starting work, create subtasks for each step using task_create with parent_id set to "${task.id}". As you complete each step, use task_update to transition it to "running" then "completed". This helps the user see your progress.`;
 
+  // Build kanban tracking prompt if kanbanStore is available
+  let kanbanTrackingPrompt = "";
+  if (opts.kanbanStore) {
+    const boardSummary = await opts.kanbanStore.getSummary();
+    if (boardSummary) {
+      kanbanTrackingPrompt = `\n\nKanban Board:\n${boardSummary}\n\nKanban Progress Tracking (IMPORTANT):\nYou have access to the "kanban" tool. When your task message contains a kanban card_id and task IDs, you MUST use the kanban tool with action "toggle_task" to mark each sub-task as done when you complete the corresponding work. Call it like: kanban({ action: "toggle_task", card_id: "<card_id>", task_id: "<task_id>" }). This is how the user tracks your real-time progress.`;
+    }
+  }
+
+  // Build a scoped registry so the agent only sees its allowed tools
+  let agentRegistry: ToolRegistry = registry;
+  if (definition.allowedTools.length > 0) {
+    const scoped = new ToolRegistryClass();
+    const allowed = new Set([
+      ...definition.allowedTools,
+      // Always include task + kanban tools for tracking
+      "task_create", "task_list", "task_get", "task_update",
+      "kanban",
+    ]);
+    for (const toolName of allowed) {
+      const tool = registry.get(toolName);
+      if (tool) {
+        scoped.register(tool);
+      }
+    }
+    agentRegistry = scoped;
+  }
+
   // Build agent-scoped config
   const agentConfig: AppConfig = {
     ...config,
     maxTurns: definition.maxTurns,
-    systemPrompt: definition.systemPrompt + taskTrackingPrompt,
+    systemPrompt: definition.systemPrompt + taskTrackingPrompt + kanbanTrackingPrompt,
   };
 
   // Build messages
@@ -113,7 +145,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<{
 
     const result = await runQueryLoop(messages, {
       config: agentConfig,
-      registry,
+      registry: agentRegistry,
       hooks,
       getAppState: agentStore.get,
       setAppState: agentStore.set,

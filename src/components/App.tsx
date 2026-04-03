@@ -11,6 +11,7 @@ import type { TaskManager } from "../tasks/TaskManager.js";
 import type { AgentRouter } from "../agents/AgentRouter.js";
 import type { SkillRegistry } from "../skills/index.js";
 import type { TeamManager } from "../teams/TeamManager.js";
+import type { KanbanStore } from "../kanban/KanbanStore.js";
 import { REPL } from "../screens/REPL.js";
 
 /** Runtime dependencies available throughout the React tree. */
@@ -27,6 +28,7 @@ export interface RuntimeContextValue {
   agentRouter: AgentRouter;
   skillRegistry: SkillRegistry;
   teamManager: TeamManager;
+  kanbanStore: KanbanStore;
 }
 
 const RuntimeContext = createContext<RuntimeContextValue | null>(null);
@@ -53,6 +55,7 @@ interface AppProps {
   agentRouter: AgentRouter;
   skillRegistry: SkillRegistry;
   teamManager: TeamManager;
+  kanbanStore: KanbanStore;
 }
 
 export function App({
@@ -69,6 +72,7 @@ export function App({
   agentRouter,
   skillRegistry,
   teamManager,
+  kanbanStore,
 }: AppProps) {
   return (
     <RuntimeContext.Provider
@@ -85,6 +89,7 @@ export function App({
         agentRouter,
         skillRegistry,
         teamManager,
+        kanbanStore,
       }}
     >
       <AppStateProvider store={store}>

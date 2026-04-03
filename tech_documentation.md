@@ -139,6 +139,9 @@ src/
 │   ├── builtinAgents.ts        # Explorer, Coder, Reviewer definitions
 │   ├── runAgent.ts             # Agent spawning & isolated query loop execution
 │   └── customAgentStore.ts     # Disk persistence for user-created agents
+├── kanban/
+│   ├── KanbanStore.ts          # Persistent kanban board (cards, tasks, columns)
+│   └── KanbanStore.test.ts     # KanbanStore unit tests
 ├── teams/
 │   ├── TeamTypes.ts            # Team, Teammate types and status enums
 │   ├── Mailbox.ts              # In-memory inter-agent messaging
@@ -186,6 +189,7 @@ src/
 │   ├── BriefTool/              # Toggle compact output mode
 │   ├── EnterPlanModeTool/      # Enter planning mode
 │   ├── ExitPlanModeTool/       # Exit planning mode
+│   ├── KanbanTool/             # Kanban board management (cards, tasks, columns)
 │   ├── SkillCreateTool/        # Create custom slash command definitions
 │   ├── SkillListTool/          # List all available skills
 │   ├── SendMessageTool/        # Append system messages
@@ -266,7 +270,8 @@ src/index.ts  -->  src/entrypoints/cli.tsx  -->  src/entrypoints/init.ts
 10. new AgentRouter()        -- Register built-in + custom agents
 11. new SkillRegistry()      -- Register built-in slash commands
 11a. new CustomSkillStore()  -- Load persisted custom skills
-12. new ToolRegistry()       -- Register all 35+ tools (incl. skill_create, skill_list)
+11b. new KanbanStore()       -- Persistent project kanban board
+12. new ToolRegistry()       -- Register all 35+ tools (incl. skill_create, skill_list, kanban)
 13. new TeamManager()        -- Parallel multi-agent coordination
 14. new PluginManager()      -- Activate plugins
 15. new ServiceManager()     -- Background service lifecycle
@@ -288,7 +293,8 @@ EnvConfig --> AppConfig --> Logger
                        --> AgentRouter (builtinAgents + customAgents)
                        --> SkillRegistry (builtinSkills + customSkills)
                        --> CustomSkillStore (load persisted custom skills)
-                       --> ToolRegistry (all tools, needs AgentRouter + TaskManager + SkillRegistry)
+                       --> KanbanStore (persistent project board)
+                       --> ToolRegistry (all tools, needs AgentRouter + TaskManager + SkillRegistry + KanbanStore)
                        --> TeamManager (needs AgentRouter + TaskManager + HookManager + ToolRegistry)
                        --> PluginManager
                        --> ServiceManager
@@ -529,6 +535,11 @@ class ToolRegistry {
 | EnterPlanModeTool | `enter_plan_mode` | No | Static | Enter planning mode |
 | ExitPlanModeTool | `exit_plan_mode` | No | Static | Exit planning mode |
 
+#### Kanban Board
+| Tool | Name | Read-Only | Pattern | Description |
+|------|------|-----------|---------|-------------|
+| KanbanTool | `kanban` | No | Factory | Manage project kanban board (add/move/archive cards, add/toggle/remove tasks, list board) |
+
 #### Communication
 | Tool | Name | Read-Only | Pattern | Description |
 |------|------|-----------|---------|-------------|
@@ -559,13 +570,13 @@ interface AgentDefinition {
 
 | Agent | Key Tools | Max Turns | Purpose |
 |-------|-----------|-----------|---------|
-| **explorer** | grep, glob, file_read, shell, web_search/fetch, tool_search, task_* | 8 | Read-only codebase exploration |
-| **coder** | grep, glob, file_read/write/edit, shell, lsp_diagnostics, repl, notebook_edit, web_*, task_*, todo_write | 15 | Code generation and editing |
-| **reviewer** | grep, glob, file_read, shell, lsp_diagnostics, web_search/fetch, tool_search, task_* | 10 | Code review and analysis |
-| **documenter** | grep, glob, file_read/write/edit, shell, web_search/fetch, tool_search, task_*, todo_write | 12 | Documentation generation (READMEs, API docs, changelogs) |
-| **architect** | grep, glob, file_read, shell, lsp_diagnostics, web_search/fetch, tool_search, task_*, todo_write | 12 | Architecture analysis, design, and planning |
+| **explorer** | grep, glob, file_read, shell, web_search/fetch, tool_search, task_*, kanban | 8 | Read-only codebase exploration |
+| **coder** | grep, glob, file_read/write/edit, shell, lsp_diagnostics, repl, notebook_edit, web_*, task_*, todo_write, kanban | 15 | Code generation and editing |
+| **reviewer** | grep, glob, file_read, shell, lsp_diagnostics, web_search/fetch, tool_search, task_*, kanban | 10 | Code review and analysis |
+| **documenter** | grep, glob, file_read/write/edit, shell, web_search/fetch, tool_search, task_*, todo_write, kanban | 12 | Documentation generation (READMEs, API docs, changelogs) |
+| **architect** | grep, glob, file_read, shell, lsp_diagnostics, web_search/fetch, tool_search, task_*, todo_write, kanban | 12 | Architecture analysis, design, and planning |
 
-All agents have access to `tool_search` for discovering available tools and task management tools (`task_create`, `task_list`, `task_get`, `task_update`) for tracking work.
+All agents have access to `tool_search` for discovering available tools, task management tools (`task_create`, `task_list`, `task_get`, `task_update`) for tracking work, and the `kanban` tool for real-time board progress updates.
 
 ### Agent Execution (`src/agents/runAgent.ts`)
 
@@ -574,16 +585,20 @@ All agents have access to `tool_search` for discovering available tools and task
 ```
 runAgent(definition, userMessage, config, registry, ...):
   1. Create a tracking task in TaskManager
-  2. Build agent-scoped config (maxTurns, systemPrompt + task tracking instructions)
-  3. Build message array (system + optional parent messages + user message)
-  4. Create ISOLATED AppState store for the agent
-  5. Subscribe to agent's internal tool calls for parent UI forwarding
-  6. Emit "agent:start" hook
-  7. Run query loop with agent's config
-  8. Extract final assistant text as output
-  9. Transition task to completed/failed
-  10. Emit "agent:end" hook
+  2. Build agent-scoped config (maxTurns, systemPrompt + task tracking + kanban tracking instructions)
+  3. Build SCOPED ToolRegistry from agent's allowedTools + task tools + kanban tool
+  4. Inject kanban board summary (from KanbanStore.getSummary()) into system prompt if available
+  5. Build message array (system + optional parent messages + user message)
+  6. Create ISOLATED AppState store for the agent
+  7. Subscribe to agent's internal tool calls for parent UI forwarding
+  8. Emit "agent:start" hook
+  9. Run query loop with agent's scoped config + scoped registry
+  10. Extract final assistant text as output
+  11. Transition task to completed/failed
+  12. Emit "agent:end" hook
 ```
+
+Key design: solo agents now receive the same scoped tool registry as team agents — they only see the tools in their `allowedTools` plus task management and kanban tools. This prevents tool overload and ensures kanban tracking works reliably.
 
 ### Agent Router (`src/agents/AgentRouter.ts`)
 
@@ -661,6 +676,7 @@ Core orchestrator for team lifecycle:
 Each teammate receives a fresh `ToolRegistry` containing only:
 - The agent definition's `allowedTools` (or all if empty)
 - Task management tools: `task_create`, `task_list`, `task_get`, `task_update`
+- Kanban tool: `kanban` (for real-time board progress updates)
 - Team coordination tools: `team_message`, `team_check_messages`, `team_task_claim`
 
 #### Teammate Prompt (`src/teams/teammatePrompt.ts`)
@@ -1028,6 +1044,7 @@ class SkillRegistry {
 | `/plan` | prompt | Enter planning mode |
 | `/agent <desc>` | prompt | Create custom agent from natural language |
 | `/skill <desc>` | prompt | Create a custom slash command from natural language |
+| `/board [args]` | prompt | View and manage the project kanban board (add cards, run tasks, track progress) |
 
 ### Custom Skills
 
@@ -1230,19 +1247,26 @@ agentRouter.get("explorer")  --> AgentDefinition
   |
   v
 runAgent({
-  definition, userMessage, config, registry, hooks, taskManager
+  definition, userMessage, config, registry, hooks, taskManager, kanbanStore
 })
   |
   v
 taskManager.create() --> Task (tracking)
   |
   v
+Build SCOPED ToolRegistry (allowedTools + task tools + kanban)
+  |
+  v
+Inject kanban board summary + tracking prompt into system prompt
+  |
+  v
 createStore<AppState>()  --> Isolated agent state
   |
   v
-runQueryLoop(agentMessages, agentConfig)  --> Runs in agent's own loop
+runQueryLoop(agentMessages, agentConfig, scopedRegistry)  --> Runs in agent's own loop
   |
   +--> Agent's tool activity forwarded to parent UI via store subscription
+  +--> Agent uses kanban tool to toggle sub-tasks as work completes
   |
   v
 Return output text to parent conversation
@@ -1325,6 +1349,10 @@ process.exit(0)
 | `src/agents/builtinAgents.ts` | 57 | `ExplorerAgent`, `CoderAgent`, `ReviewerAgent` | Built-in agent definitions |
 | `src/agents/runAgent.ts` | 155 | `runAgent()` | Agent spawn + isolated query loop |
 | `src/agents/customAgentStore.ts` | 68 | `CustomAgentStore` | Disk persistence for custom agents |
+| `src/kanban/KanbanStore.ts` | ~200 | `KanbanStore` | Persistent kanban board (cards, tasks, columns, summary) |
+| `src/kanban/KanbanStore.test.ts` | ~225 | Tests | KanbanStore unit tests |
+| `src/tools/KanbanTool/KanbanTool.ts` | ~200 | `createKanbanTool()` | Kanban board management tool |
+| `src/tools/KanbanTool/formatBoard.ts` | ~80 | `formatBoard()` | Board display formatting |
 | `src/teams/TeamTypes.ts` | 48 | Team types + interfaces | Type definitions for teams |
 | `src/teams/Mailbox.ts` | 93 | `Mailbox` | In-memory inter-agent messaging |
 | `src/teams/TeamManager.ts` | 260 | `TeamManager` | Team lifecycle orchestrator |
@@ -1434,7 +1462,8 @@ bun x tsc --noEmit            # Type check (strict mode)
 │   ├── <session-id>.json
 │   └── _latest.json
 ├── agents.json                  # Custom agent definitions
-└── skills.json                  # Custom skill definitions
+├── skills.json                  # Custom skill definitions
+└── kanban.json                  # Persistent kanban board (cards, tasks, columns)
 ```
 
 ---

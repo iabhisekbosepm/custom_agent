@@ -63,6 +63,9 @@ import { createTeamStatusTool } from "../tools/TeamStatusTool/TeamStatusTool.js"
 import { createTeamMessageTool } from "../tools/TeamMessageTool/TeamMessageTool.js";
 import { createTeamCheckMessagesTool } from "../tools/TeamCheckMessagesTool/TeamCheckMessagesTool.js";
 import { createTeamTaskClaimTool } from "../tools/TeamTaskClaimTool/TeamTaskClaimTool.js";
+// Kanban
+import { KanbanStore } from "../kanban/KanbanStore.js";
+import { createKanbanTool } from "../tools/KanbanTool/KanbanTool.js";
 
 /** Base directory for all persisted data. */
 const DATA_DIR = join(process.cwd(), ".custom-agents");
@@ -98,6 +101,7 @@ Utility tools:
 - todo_write: Write/append todo items to a persistent file.
 - skill_create: Create a custom slash command that persists across sessions.
 - skill_list: List all available skills/slash commands.
+- kanban: Manage the project Kanban board (add/move/list cards and tasks). The board persists across sessions.
 
 Code & notebook tools:
 - notebook_edit: Edit Jupyter notebook cells (replace/insert/delete).
@@ -118,7 +122,23 @@ Team coordination:
 - team_create: Create and run a team of agents working in parallel on related tasks.
 - team_status: Check the status of a team and its teammates.
 
-Slash commands available to users: /explain, /commit, /status, /find, /diff, /brief, /plan, /agent, /skill
+Slash commands available to users: /explain, /commit, /status, /find, /diff, /brief, /plan, /agent, /skill, /board
+
+Kanban board workflow:
+The kanban tool manages a persistent project board (.custom-agents/kanban.json) with columns: backlog → planning → in-progress → review → done.
+When the user asks you to "run", "execute", "work on", or "complete" a kanban card:
+1. Read the card details from the board (use kanban action "list" if needed).
+2. Move the card to "in-progress" (action "move_card").
+3. Break the card into sub-tasks if it doesn't have any (action "add_task").
+4. Spawn the appropriate agent (agent_spawn) to do the actual work described in the card.
+   - For codebase understanding/exploration → use "explorer" agent.
+   - For code writing/editing → use "coder" agent.
+   - For code review → use "reviewer" agent.
+   - For documentation → use "documenter" agent.
+   - For architecture/design → use "architect" agent.
+5. After the agent completes, toggle sub-tasks as done (action "toggle_task").
+6. When all work is finished, move the card to "review" or "done" (action "move_card").
+Do NOT just move the card — you must spawn an agent to actually perform the work.
 
 Workflow for understanding code:
 1. Use glob to find relevant files
@@ -143,6 +163,7 @@ export interface InitResult {
   pluginManager: PluginManager;
   serviceManager: ServiceManager;
   teamManager: TeamManager;
+  kanbanStore: KanbanStore;
 }
 
 /**
@@ -230,6 +251,9 @@ export async function initialize(): Promise<InitResult> {
     skills: skillRegistry.list().map((s) => s.name),
   });
 
+  // Create kanban store (needed early for agent spawn tool)
+  const kanbanStore = new KanbanStore(DATA_DIR);
+
   // Create tool registry and register tools
   const registry = new ToolRegistry();
   registry.register(GrepTool);
@@ -238,7 +262,7 @@ export async function initialize(): Promise<InitResult> {
   registry.register(FileWriteTool);
   registry.register(FileEditTool);
   registry.register(ShellTool);
-  registry.register(createAgentSpawnTool(agentRouter, taskManager, hooks, registry));
+  registry.register(createAgentSpawnTool(agentRouter, taskManager, hooks, registry, kanbanStore));
   registry.register(createAgentCreateTool(agentRouter, customAgentStore));
 
   // Task management tools (factory — need taskManager)
@@ -277,6 +301,9 @@ export async function initialize(): Promise<InitResult> {
   // Skill tools
   registry.register(createSkillCreateTool(skillRegistry, customSkillStore));
   registry.register(createSkillListTool(skillRegistry));
+
+  // Kanban board (persistent project planning)
+  registry.register(createKanbanTool(kanbanStore));
 
   // Create team manager
   const teamManager = new TeamManager(agentRouter, taskManager, hooks, registry, log);
@@ -356,5 +383,6 @@ export async function initialize(): Promise<InitResult> {
     pluginManager,
     serviceManager,
     teamManager,
+    kanbanStore,
   };
 }

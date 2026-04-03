@@ -9,13 +9,15 @@ Use grep and glob to search efficiently. Use file_read to examine files in detai
 Use web_search/web_fetch to look up documentation or APIs when needed.
 Use tool_search to discover other available tools.
 Be concise — return only the information that was asked for.
-Do NOT modify any files. You are read-only.`,
+Do NOT modify any files. You are read-only.
+When your task includes a kanban card_id and task IDs, you MUST use the kanban tool (action "toggle_task") to mark each sub-task as done when you finish the corresponding step. Do not skip this — it is how the user tracks your progress in real time.`,
   allowedTools: [
     "grep", "glob", "file_read",
     "shell",
     "web_search", "web_fetch",
     "tool_search",
     "task_create", "task_list", "task_get", "task_update",
+    "kanban",
   ],
   maxTurns: 8,
   mode: "sync",
@@ -34,7 +36,8 @@ Workflow:
 5. Use lsp_diagnostics to check for type errors after edits
 6. Use web_search/web_fetch to look up APIs or library docs when needed
 
-Write clean, idiomatic code. Follow existing patterns in the codebase.`,
+Write clean, idiomatic code. Follow existing patterns in the codebase.
+When your task includes a kanban card_id and task IDs, you MUST use the kanban tool (action "toggle_task") to mark each sub-task as done when you finish the corresponding step. Do not skip this — it is how the user tracks your progress in real time.`,
   allowedTools: [
     "grep", "glob", "file_read", "file_write", "file_edit",
     "shell",
@@ -43,6 +46,7 @@ Write clean, idiomatic code. Follow existing patterns in the codebase.`,
     "tool_search",
     "task_create", "task_list", "task_get", "task_update",
     "todo_write",
+    "kanban",
   ],
   maxTurns: 15,
   mode: "sync",
@@ -65,7 +69,8 @@ Look for:
 - Style inconsistencies
 - Missing error handling
 
-Be specific and actionable in your feedback. Do NOT modify files.`,
+Be specific and actionable in your feedback. Do NOT modify files.
+When your task includes a kanban card_id and task IDs, you MUST use the kanban tool (action "toggle_task") to mark each sub-task as done when you finish the corresponding step. Do not skip this — it is how the user tracks your progress in real time.`,
   allowedTools: [
     "grep", "glob", "file_read",
     "shell",
@@ -73,6 +78,7 @@ Be specific and actionable in your feedback. Do NOT modify files.`,
     "web_search", "web_fetch",
     "tool_search",
     "task_create", "task_list", "task_get", "task_update",
+    "kanban",
   ],
   maxTurns: 10,
   mode: "sync",
@@ -97,7 +103,8 @@ Documentation guidelines:
 - Document public APIs, configuration options, and architecture decisions
 - Use clear headings, tables, and diagrams (ASCII/Mermaid) for complex topics
 - Keep language concise — no filler, no fluff
-- Follow the existing documentation style if one exists in the project`,
+- Follow the existing documentation style if one exists in the project
+When your task includes a kanban card_id and task IDs, you MUST use the kanban tool (action "toggle_task") to mark each sub-task as done when you finish the corresponding step. Do not skip this — it is how the user tracks your progress in real time.`,
   allowedTools: [
     "grep", "glob", "file_read", "file_write", "file_edit",
     "shell",
@@ -105,6 +112,7 @@ Documentation guidelines:
     "tool_search",
     "task_create", "task_list", "task_get", "task_update",
     "todo_write",
+    "kanban",
   ],
   maxTurns: 12,
   mode: "sync",
@@ -136,7 +144,8 @@ When proposing changes:
 - Identify breaking changes and migration steps
 - Keep proposals pragmatic — prefer incremental improvements over big rewrites
 
-Do NOT modify files. Produce analysis and plans only.`,
+Do NOT modify files. Produce analysis and plans only.
+When your task includes a kanban card_id and task IDs, you MUST use the kanban tool (action "toggle_task") to mark each sub-task as done when you finish the corresponding step. Do not skip this — it is how the user tracks your progress in real time.`,
   allowedTools: [
     "grep", "glob", "file_read",
     "shell",
@@ -145,6 +154,7 @@ Do NOT modify files. Produce analysis and plans only.`,
     "tool_search",
     "task_create", "task_list", "task_get", "task_update",
     "todo_write",
+    "kanban",
   ],
   maxTurns: 12,
   mode: "sync",

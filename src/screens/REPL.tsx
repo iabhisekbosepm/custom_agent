@@ -30,6 +30,7 @@ export function REPL({ store }: REPLProps) {
     sessionPersistence,
     sessionId,
     skillRegistry,
+    kanbanStore,
   } = useRuntime();
 
   const handleDiff = useCallback(
@@ -255,7 +256,13 @@ export function REPL({ store }: REPLProps) {
           }
 
           const currentMessages = store.get().messages;
-          const memoryContext = await memory.buildContext(["project", "user"]);
+          const [memoryContext, boardSummary] = await Promise.all([
+            memory.buildContext(["project", "user"]),
+            kanbanStore.getSummary(),
+          ]);
+          const fullContext = [memoryContext, boardSummary]
+            .filter(Boolean)
+            .join("\n\n") || undefined;
           await runQueryLoop(currentMessages, {
             config,
             registry,
@@ -264,7 +271,7 @@ export function REPL({ store }: REPLProps) {
             setAppState: store.set,
             abortSignal: abortController.signal,
             log: log.child("query"),
-            memoryContext: memoryContext || undefined,
+            memoryContext: fullContext,
           });
 
           // Save transcript after each completed query
@@ -277,7 +284,7 @@ export function REPL({ store }: REPLProps) {
           });
         });
     },
-    [config, registry, hooks, store, log, abortController, memory, sessionPersistence, sessionId, skillRegistry]
+    [config, registry, hooks, store, log, abortController, memory, sessionPersistence, sessionId, skillRegistry, kanbanStore]
   );
 
   const isBusy = state.inputMode === "busy" || state.focusOwner !== "input";

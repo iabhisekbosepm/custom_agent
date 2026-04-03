@@ -118,6 +118,47 @@ Now call the skill_create tool with the generated definition.`,
   userInvocable: true,
 };
 
+export const BoardSkill: SkillDefinition = {
+  name: "board",
+  description: "View and manage the project Kanban board",
+  type: "prompt",
+  promptTemplate: `The user wants to interact with the project Kanban board.
+
+Determine what the user wants and take the appropriate action:
+
+1. **View the board**: If they just said "/board" with no arguments, use the kanban tool with action "list" to show the full board.
+
+2. **CRUD operations**: If they asked to add/move/update/archive cards or tasks, use the kanban tool with the appropriate action (add_card, move_card, update_card, archive_card, add_task, toggle_task, remove_task).
+
+3. **Run/execute a card**: If the user asks to "run", "execute", "work on", "complete", or "start" a card:
+   a. First, use the kanban tool with action "list" to see the board and identify the card.
+   b. Move the card to "in-progress" using kanban action "move_card".
+   c. If the card has no sub-tasks, break the work into sub-tasks using kanban action "add_task". Note the returned task IDs.
+   d. Spawn the appropriate agent using agent_spawn to actually perform the work:
+      - Codebase understanding/exploration → agent "explorer"
+      - Code writing/editing → agent "coder"
+      - Code review → agent "reviewer"
+      - Documentation → agent "documenter"
+      - Architecture/design → agent "architect"
+      CRITICAL: You MUST include the kanban card_id AND every sub-task ID in the agent_spawn message. The agent needs these to toggle tasks done as it works. Format the message EXACTLY like this:
+      "<description of the work to do>
+
+Kanban card_id: <card_id>
+Toggle these kanban tasks as you complete them:
+- task_id: <id1> → <task title 1>
+- task_id: <id2> → <task title 2>
+- task_id: <id3> → <task title 3>"
+   e. After the agent finishes, verify sub-tasks are toggled as done. Toggle any remaining ones using kanban action "toggle_task".
+   f. Move the card to "done" using kanban action "move_card".
+   IMPORTANT: You MUST spawn an agent to do the actual work. Do NOT just move the card status without doing the work.
+
+User input: {{input}}
+
+Take the appropriate action now.`,
+  requiredTools: ["kanban", "agent_spawn"],
+  userInvocable: true,
+};
+
 export const builtinSkills: SkillDefinition[] = [
   ExplainSkill,
   CommitSkill,
@@ -129,4 +170,5 @@ export const builtinSkills: SkillDefinition[] = [
   PlanSkill,
   AgentSkill,
   SkillSkill,
+  BoardSkill,
 ];

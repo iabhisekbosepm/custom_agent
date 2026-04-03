@@ -40,6 +40,7 @@ src/
 ├── skills/          # User-invocable slash commands
 ├── state/           # Application state management (store, AppStateStore)
 ├── tasks/           # Task tracking with dependencies + atomic claiming
+├── kanban/          # Persistent Kanban board (KanbanStore, cards, sub-tasks, board formatting)
 ├── teams/           # Agent Teams (parallel multi-agent coordination, mailbox, scoped registries)
 ├── tools/           # 35+ built-in tools
 ├── types/           # Shared types (config, messages)
@@ -60,11 +61,11 @@ Five built-in agents, each with different capabilities and constraints:
 
 | Agent      | Purpose                    | Key Tools                                       | Max Turns |
 |------------|----------------------------|-------------------------------------------------|-----------|
-| explorer   | Codebase exploration       | grep, glob, file_read, shell, web_search/fetch, tool_search, task_* | 8 |
-| coder      | Code gen & editing         | grep, glob, file_read/write/edit, shell, lsp, repl, notebook_edit, web_*, task_*, todo_write | 15 |
-| reviewer   | Code review & analysis     | grep, glob, file_read, shell, lsp, web_search/fetch, tool_search, task_* | 10 |
-| documenter | Documentation generation   | grep, glob, file_read/write/edit, shell, web_*, tool_search, task_*, todo_write | 12 |
-| architect  | Architecture & design      | grep, glob, file_read, shell, lsp, web_*, tool_search, task_*, todo_write | 12 |
+| explorer   | Codebase exploration       | grep, glob, file_read, shell, web_search/fetch, tool_search, task_*, kanban | 8 |
+| coder      | Code gen & editing         | grep, glob, file_read/write/edit, shell, lsp, repl, notebook_edit, web_*, task_*, todo_write, kanban | 15 |
+| reviewer   | Code review & analysis     | grep, glob, file_read, shell, lsp, web_search/fetch, tool_search, task_*, kanban | 10 |
+| documenter | Documentation generation   | grep, glob, file_read/write/edit, shell, web_*, tool_search, task_*, todo_write, kanban | 12 |
+| architect  | Architecture & design      | grep, glob, file_read, shell, lsp, web_*, tool_search, task_*, todo_write, kanban | 12 |
 
 Custom agents can be created via `/agent` or `agent_create` tool, persisted in `.custom-agents/agents.json`.
 Custom skills can be created via `/skill` or `skill_create` tool, persisted in `.custom-agents/skills.json`.
@@ -94,6 +95,7 @@ All tools implement the `Tool<TInput>` interface (`src/tools/Tool.ts`):
 - **Team coordination**: `TeamCreateTool`, `TeamStatusTool`, `TeamMessageTool`, `TeamCheckMessagesTool`, `TeamTaskClaimTool`
 - **Task management**: `TaskCreateTool`, `TaskUpdateTool`, `TaskGetTool`, `TaskListTool`, `TaskOutputTool`, `TaskStopTool`
 - **Skill management**: `SkillCreateTool`, `SkillListTool`
+- **Kanban board**: `KanbanTool` (cards, sub-tasks, board management)
 - **Web**: `WebSearchTool`, `WebFetchTool`
 - **Mode control**: `EnterPlanModeTool`, `ExitPlanModeTool`
 - **UI/UX**: `BriefTool`, `ConfigTool`, `REPLTool`, `SleepTool`
@@ -130,7 +132,7 @@ Typed lifecycle events (16 total):
 Plugins can contribute new tools, hooks, and skills.
 
 ### Skills / Slash Commands (`src/skills/`)
-User-invocable commands: `/explain`, `/commit`, `/status`, `/find`, `/compact`, `/diff`, `/brief`, `/plan`, `/agent`, `/skill`
+User-invocable commands: `/explain`, `/commit`, `/status`, `/find`, `/compact`, `/diff`, `/brief`, `/plan`, `/agent`, `/skill`, `/board`
 
 Custom skills can be created via `/skill` or `skill_create` tool, persisted in `.custom-agents/skills.json`. Custom skills are always prompt-based (`type: "prompt"`) and user-invocable. The `CustomSkillStore` (`src/skills/customSkillStore.ts`) mirrors `CustomAgentStore` for disk persistence.
 
@@ -159,4 +161,5 @@ CONTEXT_BUDGET=120000
 - **Tests** use `bun test` — colocated `*.test.ts` next to source files
 - **Diff utilities** in `src/utils/diff.ts` — used for rendering file edits
 - **Agents run in isolated stores** — internal state doesn't pollute parent, but tool activity is forwarded for UI
-- **Team teammates get scoped `ToolRegistry`** — only their agent's allowed tools + team + task tools
+- **Both solo and team agents get scoped `ToolRegistry`** — only their agent's allowed tools + task + kanban tools
+- **Kanban board** (`src/kanban/`) — persistent project board (`.custom-agents/kanban.json`) with columns: backlog → planning → in-progress → review → done. Sub-agents receive board summary + tracking prompts and update tasks in real-time via the `kanban` tool

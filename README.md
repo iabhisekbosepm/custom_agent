@@ -79,8 +79,8 @@ Any LLM provider that speaks the OpenAI API format:
 | Create, track, and manage tasks with dependencies — all from the terminal | Explore and plan before coding. Approve the approach, then execute | Define your own agents with custom tool sets and system prompts |
 | **👥 Agent Teams** | **📬 Inter-Agent Mailbox** | **🔗 Task Dependencies** |
 | Spawn N agents that run in parallel, coordinated by a team lead | Teammates communicate via in-memory mailbox (send, broadcast, peek) | Tasks support blockedBy/blocks with atomic claiming and auto-unblock |
-| **🎯 Custom Skills** | | |
-| Create your own `/slash` commands from natural language — persisted across sessions | | |
+| **🎯 Custom Skills** | **📋 Kanban Board** | |
+| Create your own `/slash` commands from natural language — persisted across sessions | Persistent project board with columns (backlog → done), cards, sub-tasks, and real-time agent progress tracking via `/board` | |
 
 ---
 
@@ -138,13 +138,13 @@ Five built-in agents, each designed for a specific workflow:
 
 | Agent | Purpose | Key Tools | Max Turns |
 |-------|---------|-----------|-----------|
-| **Explorer** | Codebase exploration & search | `grep`, `glob`, `file_read`, `shell`, `web_search`, `tool_search` | 8 |
-| **Coder** | Code generation & editing | `grep`, `glob`, `file_read/write/edit`, `shell`, `lsp`, `repl`, `web_*` | 15 |
-| **Reviewer** | Code review & analysis | `grep`, `glob`, `file_read`, `shell`, `lsp`, `web_search` | 10 |
-| **Documenter** | Documentation generation | `grep`, `glob`, `file_read/write/edit`, `shell`, `web_*`, `tool_search` | 12 |
-| **Architect** | Architecture analysis & design | `grep`, `glob`, `file_read`, `shell`, `lsp`, `web_*`, `tool_search` | 12 |
+| **Explorer** | Codebase exploration & search | `grep`, `glob`, `file_read`, `shell`, `web_search`, `tool_search`, `kanban` | 8 |
+| **Coder** | Code generation & editing | `grep`, `glob`, `file_read/write/edit`, `shell`, `lsp`, `repl`, `web_*`, `kanban` | 15 |
+| **Reviewer** | Code review & analysis | `grep`, `glob`, `file_read`, `shell`, `lsp`, `web_search`, `kanban` | 10 |
+| **Documenter** | Documentation generation | `grep`, `glob`, `file_read/write/edit`, `shell`, `web_*`, `tool_search`, `kanban` | 12 |
+| **Architect** | Architecture analysis & design | `grep`, `glob`, `file_read`, `shell`, `lsp`, `web_*`, `tool_search`, `kanban` | 12 |
 
-All agents also have access to task management tools (`task_create`, `task_list`, `task_get`, `task_update`) and `tool_search` for discovering available capabilities.
+All agents also have access to task management tools (`task_create`, `task_list`, `task_get`, `task_update`), the `kanban` tool for real-time board progress updates, and `tool_search` for discovering available capabilities. Solo agents receive a **scoped tool registry** containing only their allowed tools (matching the team agent pattern).
 
 You can also create **custom agents** with `/agent` — define your own tool sets, system prompts, and constraints.
 
@@ -182,6 +182,7 @@ The lead agent creates the team, teammates run in parallel, and the lead synthes
 | **Agent Orchestration** | `agent_spawn`, `agent_create` |
 | **Skill Management** | `skill_create`, `skill_list` |
 | **Team Coordination** | `team_create`, `team_status`, `team_message`, `team_check_messages`, `team_task_claim` |
+| **Kanban Board** | `kanban` (add/move/archive cards, manage sub-tasks, track progress) |
 | **Code Quality** | `lsp`, `notebook_edit` |
 | **Mode Control** | `enter_plan_mode`, `exit_plan_mode` |
 
@@ -201,6 +202,7 @@ The lead agent creates the team, teammates run in parallel, and the lead synthes
 | `/brief` | Toggle brief/compact output mode |
 | `/agent` | Create a custom agent from natural language |
 | `/skill` | Create a custom slash command from natural language |
+| `/board` | View and manage the project Kanban board (add cards, run tasks, track progress) |
 
 ---
 
@@ -271,6 +273,7 @@ src/
 ├── state/        # Application state management
 ├── tasks/        # Task tracking with dependencies + claiming
 ├── teams/        # Agent Teams (parallel multi-agent coordination)
+├── kanban/       # Persistent Kanban board (KanbanStore, cards, tasks)
 ├── tools/        # 35+ built-in tools
 ├── types/        # Shared types
 └── utils/        # Utilities (logger, diff, env, shutdown)
@@ -290,6 +293,7 @@ src/
 - [x] Custom agent creation
 - [x] Agent Teams — parallel multi-agent coordination with mailbox + task dependencies
 - [x] Custom skills — user-defined slash commands that persist across sessions
+- [x] Kanban board — persistent project board with agent-driven task execution and real-time progress
 - [ ] RAG (Retrieval-Augmented Generation) for large codebases
 - [ ] MCP (Model Context Protocol) server support
 - [ ] Multi-model orchestration
