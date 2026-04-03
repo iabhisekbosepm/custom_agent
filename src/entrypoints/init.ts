@@ -73,7 +73,7 @@ Core file tools:
 - file_write: Create a new file or fully replace a file's contents.
 - file_edit: Make targeted edits by replacing exact string matches. Preferred over file_write for small changes.
 - shell: Execute shell commands for git, build tools, tests, etc.
-- agent_spawn: Spawn a sub-agent for specialized tasks (explorer, coder, reviewer, and any custom agents).
+- agent_spawn: Spawn a sub-agent for specialized tasks (explorer, coder, reviewer, documenter, architect, and any custom agents).
 - agent_create: Create a new custom agent definition that persists across sessions.
 
 Task management:

@@ -28,7 +28,7 @@
 
 ## What is Custom Agents?
 
-Custom Agents is a **terminal-based AI coding assistant** that runs entirely on your machine. It gives you specialized AI agents — explorer, coder, and reviewer — that can read, write, search, and reason about your codebase. Think of it as your own local Claude Code, powered by **any OpenAI-compatible API** (OpenRouter, OpenAI, Ollama, LM Studio).
+Custom Agents is a **terminal-based AI coding assistant** that runs entirely on your machine. It gives you specialized AI agents — explorer, coder, reviewer, documenter, and architect — that can read, write, search, and reason about your codebase. Think of it as your own local Claude Code, powered by **any OpenAI-compatible API** (OpenRouter, OpenAI, Ollama, LM Studio).
 
 You type in your terminal. The agent thinks, reads files, edits code, runs commands, and talks back. No browser. No IDE plugin. Just your terminal.
 
@@ -71,8 +71,8 @@ Any LLM provider that speaks the OpenAI API format:
 
 | | | |
 |---|---|---|
-| **🤖 3 Specialized Agents** | **🔧 35+ Built-in Tools** | **⚡ Slash Commands** |
-| Explorer, Coder, Reviewer — each with scoped permissions and tool access | File I/O, grep, glob, shell, web search, task management, LSP, and more | `/explain`, `/commit`, `/diff`, `/plan`, `/find`, `/status`, `/agent` and more |
+| **🤖 5 Specialized Agents** | **🔧 35+ Built-in Tools** | **⚡ Slash Commands** |
+| Explorer, Coder, Reviewer, Documenter, Architect — each with scoped permissions and tool access | File I/O, grep, glob, shell, web search, task management, LSP, and more | `/explain`, `/commit`, `/diff`, `/plan`, `/find`, `/status`, `/agent` and more |
 | **🧠 Context Compaction** | **💾 Session Persistence** | **🔌 Plugin System** |
 | Auto-summarizes conversation when approaching token budget (120K default) | Resume previous sessions — transcripts are saved and reloadable | Extend with custom tools, hooks, and skills |
 | **📋 Task Management** | **🏗️ Plan Mode** | **🧩 Custom Agents** |
@@ -89,7 +89,7 @@ Any LLM provider that speaks the OpenAI API format:
 | Copy-paste code into ChatGPT, lose context | Agent reads your actual files and understands your project |
 | Manually apply suggested edits | Agent writes and edits files directly, with diffs |
 | Switch between browser and terminal | Everything happens in your terminal |
-| One-size-fits-all generic AI | Specialized agents (explorer, coder, reviewer) for different tasks |
+| One-size-fits-all generic AI | Specialized agents (explorer, coder, reviewer, documenter, architect) for different tasks |
 | Run one task at a time | Spawn parallel agent teams that coordinate and communicate |
 | Vendor lock-in to one provider | Use any OpenAI-compatible API — switch models anytime |
 
@@ -132,13 +132,17 @@ curl -fsSL https://raw.githubusercontent.com/iabhisekbosepm/custom_agent/main/un
 
 <h2 id="agents">Agents</h2>
 
-Three built-in agents, each designed for a specific workflow:
+Five built-in agents, each designed for a specific workflow:
 
-| Agent | Purpose | Tools | Max Turns |
-|-------|---------|-------|-----------|
-| **Explorer** | Codebase exploration & search | `grep`, `glob`, `file_read` | 8 |
-| **Coder** | Code generation & editing | `grep`, `glob`, `file_read`, `file_write`, `file_edit` | 15 |
-| **Reviewer** | Code review & analysis | `grep`, `glob`, `file_read`, `shell` | 10 |
+| Agent | Purpose | Key Tools | Max Turns |
+|-------|---------|-----------|-----------|
+| **Explorer** | Codebase exploration & search | `grep`, `glob`, `file_read`, `shell`, `web_search`, `tool_search` | 8 |
+| **Coder** | Code generation & editing | `grep`, `glob`, `file_read/write/edit`, `shell`, `lsp`, `repl`, `web_*` | 15 |
+| **Reviewer** | Code review & analysis | `grep`, `glob`, `file_read`, `shell`, `lsp`, `web_search` | 10 |
+| **Documenter** | Documentation generation | `grep`, `glob`, `file_read/write/edit`, `shell`, `web_*`, `tool_search` | 12 |
+| **Architect** | Architecture analysis & design | `grep`, `glob`, `file_read`, `shell`, `lsp`, `web_*`, `tool_search` | 12 |
+
+All agents also have access to task management tools (`task_create`, `task_list`, `task_get`, `task_update`) and `tool_search` for discovering available capabilities.
 
 You can also create **custom agents** with `/agent` — define your own tool sets, system prompts, and constraints.
 
@@ -249,7 +253,7 @@ bun x tsc --noEmit           # Type check
 
 ```
 src/
-├── agents/       # Agent system (explorer, coder, reviewer)
+├── agents/       # Agent system (explorer, coder, reviewer, documenter, architect)
 ├── components/   # Ink terminal UI components
 ├── entrypoints/  # CLI launch + initialization
 ├── hooks/        # Typed lifecycle event system
@@ -273,7 +277,7 @@ src/
 ## Roadmap
 
 - [x] Core query loop with streaming
-- [x] 3 specialized agents (explorer, coder, reviewer)
+- [x] 5 specialized agents (explorer, coder, reviewer, documenter, architect)
 - [x] 35+ built-in tools
 - [x] Slash commands
 - [x] Context compaction

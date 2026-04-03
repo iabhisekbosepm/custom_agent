@@ -37,7 +37,7 @@
 
 ## 1. Project Overview
 
-CustomAgents is a **terminal-based AI coding assistant runtime**. It provides specialized AI agents (explorer, coder, reviewer, and user-defined agents) that help developers explore, understand, generate, and review code. The application runs entirely in the terminal using React + Ink for rendering and communicates with any OpenAI-compatible API for LLM inference.
+CustomAgents is a **terminal-based AI coding assistant runtime**. It provides specialized AI agents (explorer, coder, reviewer, documenter, architect, and user-defined agents) that help developers explore, understand, generate, document, design, and review code. The application runs entirely in the terminal using React + Ink for rendering and communicates with any OpenAI-compatible API for LLM inference.
 
 ### Key Capabilities
 
@@ -533,7 +533,7 @@ class ToolRegistry {
 
 ```typescript
 interface AgentDefinition {
-  name: string;              // "explorer", "coder", "reviewer", or custom
+  name: string;              // "explorer", "coder", "reviewer", "documenter", "architect", or custom
   description: string;       // Shown when listing agents
   systemPrompt: string;      // Injected at conversation start
   allowedTools: string[];    // Empty = all tools
@@ -545,11 +545,15 @@ interface AgentDefinition {
 
 ### Built-in Agents (`src/agents/builtinAgents.ts`)
 
-| Agent | Tools | Max Turns | Purpose |
-|-------|-------|-----------|---------|
-| **explorer** | grep, glob, file_read | 8 | Read-only codebase exploration |
-| **coder** | grep, glob, file_read, file_write, file_edit | 15 | Code generation and editing |
-| **reviewer** | grep, glob, file_read, shell | 10 | Code review and analysis |
+| Agent | Key Tools | Max Turns | Purpose |
+|-------|-----------|-----------|---------|
+| **explorer** | grep, glob, file_read, shell, web_search/fetch, tool_search, task_* | 8 | Read-only codebase exploration |
+| **coder** | grep, glob, file_read/write/edit, shell, lsp_diagnostics, repl, notebook_edit, web_*, task_*, todo_write | 15 | Code generation and editing |
+| **reviewer** | grep, glob, file_read, shell, lsp_diagnostics, web_search/fetch, tool_search, task_* | 10 | Code review and analysis |
+| **documenter** | grep, glob, file_read/write/edit, shell, web_search/fetch, tool_search, task_*, todo_write | 12 | Documentation generation (READMEs, API docs, changelogs) |
+| **architect** | grep, glob, file_read, shell, lsp_diagnostics, web_search/fetch, tool_search, task_*, todo_write | 12 | Architecture analysis, design, and planning |
+
+All agents have access to `tool_search` for discovering available tools and task management tools (`task_create`, `task_list`, `task_get`, `task_update`) for tracking work.
 
 ### Agent Execution (`src/agents/runAgent.ts`)
 

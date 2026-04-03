@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**CustomAgents** is a terminal-based AI coding assistant runtime. It provides specialized AI agents (explorer, coder, reviewer) that help developers explore, understand, generate, and review code. The app runs in the terminal using React + Ink and communicates with OpenAI-compatible APIs.
+**CustomAgents** is a terminal-based AI coding assistant runtime. It provides specialized AI agents (explorer, coder, reviewer) that help developers explore, understand, generate, and review code. Agents can work individually or as **parallel teams** coordinated via an in-memory mailbox and shared task system. The app runs in the terminal using React + Ink and communicates with OpenAI-compatible APIs.
 
 ## Tech Stack
 
@@ -27,11 +27,11 @@ bun x tsc --noEmit            # Type check
 
 ```
 src/
-├── agents/          # Agent system (explorer, coder, reviewer)
-├── components/      # Ink terminal UI components (App, InputBar, MessageList, etc.)
+├── agents/          # Agent system (explorer, coder, reviewer, custom agents)
+├── components/      # Ink terminal UI components (App, InputBar, MessageList, TeamDisplay, etc.)
 ├── entrypoints/     # cli.tsx (launch), init.ts (subsystem initialization)
-├── hooks/           # Typed lifecycle event system
-├── memory/          # File-based persistent memory (project/user/session scope)
+├── hooks/           # Typed lifecycle event system + React hooks (useTeamState, useAgentTasks)
+├── memory/          # File-based persistent memory with in-memory cache (project/user/session scope)
 ├── persistence/     # Session transcript persistence
 ├── plugins/         # Extensibility layer (tools, hooks, skills)
 ├── query/           # Core AI query loop (query.ts, streamOpenAI.ts, compaction.ts)
@@ -39,8 +39,9 @@ src/
 ├── services/        # Background services
 ├── skills/          # User-invocable slash commands
 ├── state/           # Application state management (store, AppStateStore)
-├── tasks/           # Task tracking system (Task, TaskManager)
-├── tools/           # Tool-use architecture
+├── tasks/           # Task tracking with dependencies + atomic claiming
+├── teams/           # Agent Teams (parallel multi-agent coordination, mailbox, scoped registries)
+├── tools/           # 35+ built-in tools
 ├── types/           # Shared types (config, messages)
 └── utils/           # Utilities (logger, id, env, shutdown, diff, fileResolver)
 ```
@@ -55,13 +56,28 @@ The engine of the assistant. On each turn:
 4. If no tool calls: turn is complete
 
 ### Agent System (`src/agents/`)
-Three built-in agents, each with different capabilities and constraints:
+Five built-in agents, each with different capabilities and constraints:
 
-| Agent    | Purpose                  | Allowed Tools                  | Max Turns |
-|----------|--------------------------|--------------------------------|-----------|
-| explorer | Codebase exploration     | grep, glob, file_read           | 8         |
-| coder    | Code gen & editing       | grep, glob, file_read, file_edit, file_write | 15 |
-| reviewer | Code review & analysis   | grep, glob, file_read, shell   | 10        |
+| Agent      | Purpose                    | Key Tools                                       | Max Turns |
+|------------|----------------------------|-------------------------------------------------|-----------|
+| explorer   | Codebase exploration       | grep, glob, file_read, shell, web_search/fetch, tool_search, task_* | 8 |
+| coder      | Code gen & editing         | grep, glob, file_read/write/edit, shell, lsp, repl, notebook_edit, web_*, task_*, todo_write | 15 |
+| reviewer   | Code review & analysis     | grep, glob, file_read, shell, lsp, web_search/fetch, tool_search, task_* | 10 |
+| documenter | Documentation generation   | grep, glob, file_read/write/edit, shell, web_*, tool_search, task_*, todo_write | 12 |
+| architect  | Architecture & design      | grep, glob, file_read, shell, lsp, web_*, tool_search, task_*, todo_write | 12 |
+
+Custom agents can be created via `/agent` or `agent_create` tool, persisted in `.custom-agents/agents.json`.
+
+### Agent Teams (`src/teams/`)
+Parallel multi-agent coordination system:
+
+- **TeamManager** (`TeamManager.ts`) — orchestrator: create, run (via `Promise.allSettled()`), shutdown, subscribe
+- **Mailbox** (`Mailbox.ts`) — in-memory inter-agent messaging (send, receive, peek, broadcast to "all")
+- **Scoped registries** (`buildTeammateRegistry.ts`) — each teammate gets only their agent's allowed tools + team/task tools
+- **Teammate prompt** (`teammatePrompt.ts`) — injects team context (roster, IDs, communication rules) into each agent's system prompt
+- **Types** (`TeamTypes.ts`) — `TeamStatus`: forming → running → completed/failed/shutdown
+
+Key design: single-process Bun event loop = no race conditions for `claim()`. Teammates share a global `TaskManager` for task coordination.
 
 ### Tool System (`src/tools/`)
 
@@ -69,11 +85,12 @@ All tools implement the `Tool<TInput>` interface (`src/tools/Tool.ts`):
 - `name`, `description`, `parameters` (Zod schema), `isReadOnly`, `call()`
 - Receive a `ToolUseContext` with messages, config, state, abort signal, and logger
 
-**Built-in tools:**
+**Built-in tools (35+):**
 - **File operations**: `FileReadTool`, `FileWriteTool`, `FileEditTool`
 - **Search**: `GrepTool`, `GlobTool`, `ToolSearchTool`
 - **Shell**: `ShellTool`
-- **Agent orchestration**: `AgentSpawnTool`
+- **Agent orchestration**: `AgentSpawnTool`, `AgentCreateTool`
+- **Team coordination**: `TeamCreateTool`, `TeamStatusTool`, `TeamMessageTool`, `TeamCheckMessagesTool`, `TeamTaskClaimTool`
 - **Task management**: `TaskCreateTool`, `TaskUpdateTool`, `TaskGetTool`, `TaskListTool`, `TaskOutputTool`, `TaskStopTool`
 - **Web**: `WebSearchTool`, `WebFetchTool`
 - **Mode control**: `EnterPlanModeTool`, `ExitPlanModeTool`
@@ -81,24 +98,37 @@ All tools implement the `Tool<TInput>` interface (`src/tools/Tool.ts`):
 - **Code quality**: `LSPTool`, `NotebookEditTool`
 - **Other**: `AskUserQuestionTool`, `SendMessageTool`, `SyntheticOutputTool`, `TodoWriteTool`
 
-Tools are registered via `ToolRegistry` (`src/tools/registry.ts`), which converts them to OpenAI function-calling format using `zod-to-json-schema`.
+Tools are registered via `ToolRegistry` (`src/tools/registry.ts`), which converts them to OpenAI function-calling format using `zod-to-json-schema`. Factory pattern is used for tools needing runtime dependencies (task tools, team tools, agent tools).
+
+### Task System (`src/tasks/`)
+- **TaskState**: status (pending/running/completed/failed/cancelled), metadata, output/error
+- **Dependencies**: `blockedBy: string[]`, `blocks: string[]` — auto-unblocked when blockers complete
+- **Claiming**: `claim(taskId, agentId)` — atomic (single-threaded Bun = no races), returns null if already claimed/blocked
+- **Helpers**: `addDependency()`, `isReady()`, `listClaimable()`
 
 ### State Management (`src/state/`)
 - `AppStateStore` / `AppStore`: Centralized immutable state with updater pattern
-- `AppState`: Tracks streaming, input mode, active tools, messages, errors
+- `AppState`: Tracks streaming, input mode, active tools, messages, errors, active teams, agent activity
+- `activeTeams: TeamUIState[]` — real-time team progress for UI rendering
 
 ### Hook/Event System (`src/hooks/`)
-Typed lifecycle events: `session:start/end`, `query:before/after`, `tool:before/after`, `message:assistant`
+Typed lifecycle events (16 total):
+- **Session**: `session:start`, `session:end`
+- **Query**: `query:before`, `query:after`
+- **Tool**: `tool:before`, `tool:after`
+- **Agent**: `agent:start`, `agent:end`, `message:assistant`
+- **Context**: `context:compact`
+- **Team**: `team:create`, `team:start`, `team:teammate:start`, `team:teammate:end`, `team:message`, `team:complete`
 
 ### Memory & Persistence
-- **Memory** (`src/memory/`): File-based key-value memory at project/user/session scope
+- **Memory** (`src/memory/`): File-based key-value memory at project/user/session scope with in-memory `Map` cache. `init()` creates directories on startup.
 - **Persistence** (`src/persistence/`): Saves conversation transcripts for session resumption
 
 ### Plugin System (`src/plugins/`)
 Plugins can contribute new tools, hooks, and skills.
 
 ### Skills / Slash Commands (`src/skills/`)
-User-invocable commands: `/explain`, `/commit`, `/status`, `/find`
+User-invocable commands: `/explain`, `/commit`, `/status`, `/find`, `/compact`, `/diff`, `/brief`, `/plan`, `/agent`
 
 ## Configuration
 
@@ -118,8 +148,11 @@ CONTEXT_BUDGET=120000
 - **All imports use `.js` extension** — Bun resolves `.ts` files automatically with ES modules
 - **Zod schemas** define all tool parameters; use `zod.infer` for TypeScript types
 - **Tool call orchestration** is centralized in `src/tools/orchestration.ts`
-- **Context compaction** (`src/query/compaction.ts`) uses LLM summarization when budget is exceeded
-- **Graceful shutdown** via `src/utils/shutdown.ts` (SIGINT, SIGTERM)
+- **Factory pattern** for tools needing runtime deps (e.g., `createTeamCreateTool(teamManager, config, registry)`)
+- **Context compaction** (`src/query/compaction.ts`) uses three-stage pipeline: truncate → collapse → summarize
+- **Graceful shutdown** via `src/utils/shutdown.ts` (SIGINT, SIGTERM, LIFO handler order)
 - **Strict TypeScript** — no `any`, use `esModuleInterop`, `forceConsistentCasingInFileNames`
 - **Tests** use `bun test` — colocated `*.test.ts` next to source files
 - **Diff utilities** in `src/utils/diff.ts` — used for rendering file edits
+- **Agents run in isolated stores** — internal state doesn't pollute parent, but tool activity is forwarded for UI
+- **Team teammates get scoped `ToolRegistry`** — only their agent's allowed tools + team + task tools
