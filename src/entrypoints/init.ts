@@ -51,6 +51,9 @@ import { CustomAgentStore } from "../agents/customAgentStore.js";
 import { createAgentCreateTool } from "../tools/AgentCreateTool/AgentCreateTool.js";
 import { SkillRegistry } from "../skills/index.js";
 import { builtinSkills } from "../skills/builtinSkills.js";
+import { CustomSkillStore } from "../skills/customSkillStore.js";
+import { createSkillCreateTool } from "../tools/SkillCreateTool/SkillCreateTool.js";
+import { createSkillListTool } from "../tools/SkillListTool/SkillListTool.js";
 import { PluginManager } from "../plugins/index.js";
 import { ServiceManager } from "../services/index.js";
 import { TeamManager } from "../teams/TeamManager.js";
@@ -93,6 +96,8 @@ Utility tools:
 - sleep: Pause execution for a specified duration (max 30s).
 - tool_search: Search available tools by name or description.
 - todo_write: Write/append todo items to a persistent file.
+- skill_create: Create a custom slash command that persists across sessions.
+- skill_list: List all available skills/slash commands.
 
 Code & notebook tools:
 - notebook_edit: Edit Jupyter notebook cells (replace/insert/delete).
@@ -113,7 +118,7 @@ Team coordination:
 - team_create: Create and run a team of agents working in parallel on related tasks.
 - team_status: Check the status of a team and its teammates.
 
-Slash commands available to users: /explain, /commit, /status, /find, /diff, /brief, /plan, /agent
+Slash commands available to users: /explain, /commit, /status, /find, /diff, /brief, /plan, /agent, /skill
 
 Workflow for understanding code:
 1. Use glob to find relevant files
@@ -209,6 +214,18 @@ export async function initialize(): Promise<InitResult> {
   for (const skill of builtinSkills) {
     skillRegistry.register(skill);
   }
+
+  // Load and register persisted custom skills
+  const customSkillStore = new CustomSkillStore(DATA_DIR);
+  const customSkills = await customSkillStore.load();
+  for (const skill of customSkills) {
+    if (!skillRegistry.get(skill.name)) {
+      skillRegistry.register(CustomSkillStore.toSkillDefinition(skill));
+    } else {
+      log.warn(`Skipping custom skill "${skill.name}": conflicts with built-in`);
+    }
+  }
+
   log.info("Registered skills", {
     skills: skillRegistry.list().map((s) => s.name),
   });
@@ -256,6 +273,10 @@ export async function initialize(): Promise<InitResult> {
   // Communication tools
   registry.register(SendMessageTool);
   registry.register(SyntheticOutputTool);
+
+  // Skill tools
+  registry.register(createSkillCreateTool(skillRegistry, customSkillStore));
+  registry.register(createSkillListTool(skillRegistry));
 
   // Create team manager
   const teamManager = new TeamManager(agentRouter, taskManager, hooks, registry, log);

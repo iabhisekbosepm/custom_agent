@@ -67,6 +67,7 @@ Five built-in agents, each with different capabilities and constraints:
 | architect  | Architecture & design      | grep, glob, file_read, shell, lsp, web_*, tool_search, task_*, todo_write | 12 |
 
 Custom agents can be created via `/agent` or `agent_create` tool, persisted in `.custom-agents/agents.json`.
+Custom skills can be created via `/skill` or `skill_create` tool, persisted in `.custom-agents/skills.json`.
 
 ### Agent Teams (`src/teams/`)
 Parallel multi-agent coordination system:
@@ -92,6 +93,7 @@ All tools implement the `Tool<TInput>` interface (`src/tools/Tool.ts`):
 - **Agent orchestration**: `AgentSpawnTool`, `AgentCreateTool`
 - **Team coordination**: `TeamCreateTool`, `TeamStatusTool`, `TeamMessageTool`, `TeamCheckMessagesTool`, `TeamTaskClaimTool`
 - **Task management**: `TaskCreateTool`, `TaskUpdateTool`, `TaskGetTool`, `TaskListTool`, `TaskOutputTool`, `TaskStopTool`
+- **Skill management**: `SkillCreateTool`, `SkillListTool`
 - **Web**: `WebSearchTool`, `WebFetchTool`
 - **Mode control**: `EnterPlanModeTool`, `ExitPlanModeTool`
 - **UI/UX**: `BriefTool`, `ConfigTool`, `REPLTool`, `SleepTool`
@@ -128,7 +130,9 @@ Typed lifecycle events (16 total):
 Plugins can contribute new tools, hooks, and skills.
 
 ### Skills / Slash Commands (`src/skills/`)
-User-invocable commands: `/explain`, `/commit`, `/status`, `/find`, `/compact`, `/diff`, `/brief`, `/plan`, `/agent`
+User-invocable commands: `/explain`, `/commit`, `/status`, `/find`, `/compact`, `/diff`, `/brief`, `/plan`, `/agent`, `/skill`
+
+Custom skills can be created via `/skill` or `skill_create` tool, persisted in `.custom-agents/skills.json`. Custom skills are always prompt-based (`type: "prompt"`) and user-invocable. The `CustomSkillStore` (`src/skills/customSkillStore.ts`) mirrors `CustomAgentStore` for disk persistence.
 
 ## Configuration
 

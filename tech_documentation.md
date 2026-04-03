@@ -50,6 +50,7 @@ CustomAgents is a **terminal-based AI coding assistant runtime**. It provides sp
 - **Plugin and skill extensibility** -- contribute tools, hooks, and slash commands
 - **Side-by-side diff viewer** with vim-like keyboard navigation
 - **Custom agent creation** -- define new agents from natural language that persist across sessions
+- **Custom skill creation** -- define new slash commands from natural language that persist across sessions
 
 ### Dependencies
 
@@ -185,6 +186,8 @@ src/
 │   ├── BriefTool/              # Toggle compact output mode
 │   ├── EnterPlanModeTool/      # Enter planning mode
 │   ├── ExitPlanModeTool/       # Exit planning mode
+│   ├── SkillCreateTool/        # Create custom slash command definitions
+│   ├── SkillListTool/          # List all available skills
 │   ├── SendMessageTool/        # Append system messages
 │   └── SyntheticOutputTool/    # Return pre-formatted content
 ├── state/
@@ -217,7 +220,8 @@ src/
 │   └── index.ts                # ServiceManager for long-lived background services
 ├── skills/
 │   ├── index.ts                # SkillRegistry + SkillDefinition
-│   └── builtinSkills.ts        # /explain, /commit, /status, /find, etc.
+│   ├── builtinSkills.ts        # /explain, /commit, /status, /find, /skill, etc.
+│   └── customSkillStore.ts     # Disk persistence for user-created skills
 ├── types/
 │   ├── config.ts               # EnvConfigSchema (Zod), AppConfig interface
 │   └── messages.ts             # OpenAI wire format message types
@@ -261,7 +265,8 @@ src/index.ts  -->  src/entrypoints/cli.tsx  -->  src/entrypoints/init.ts
 9. new TaskManager()         -- Background task tracking
 10. new AgentRouter()        -- Register built-in + custom agents
 11. new SkillRegistry()      -- Register built-in slash commands
-12. new ToolRegistry()       -- Register all 35+ tools
+11a. new CustomSkillStore()  -- Load persisted custom skills
+12. new ToolRegistry()       -- Register all 35+ tools (incl. skill_create, skill_list)
 13. new TeamManager()        -- Parallel multi-agent coordination
 14. new PluginManager()      -- Activate plugins
 15. new ServiceManager()     -- Background service lifecycle
@@ -281,8 +286,9 @@ EnvConfig --> AppConfig --> Logger
                        --> HookManager
                        --> TaskManager
                        --> AgentRouter (builtinAgents + customAgents)
-                       --> SkillRegistry (builtinSkills)
-                       --> ToolRegistry (all tools, needs AgentRouter + TaskManager)
+                       --> SkillRegistry (builtinSkills + customSkills)
+                       --> CustomSkillStore (load persisted custom skills)
+                       --> ToolRegistry (all tools, needs AgentRouter + TaskManager + SkillRegistry)
                        --> TeamManager (needs AgentRouter + TaskManager + HookManager + ToolRegistry)
                        --> PluginManager
                        --> ServiceManager
@@ -469,6 +475,12 @@ class ToolRegistry {
 |------|------|-----------|---------|-------------|
 | AgentSpawnTool | `agent_spawn` | No | Factory | Spawn a sub-agent (blocks until done) |
 | AgentCreateTool | `agent_create` | No | Factory | Define a new custom agent |
+
+#### Skill Management
+| Tool | Name | Read-Only | Pattern | Description |
+|------|------|-----------|---------|-------------|
+| SkillCreateTool | `skill_create` | No | Factory | Create a custom slash command that persists across sessions |
+| SkillListTool | `skill_list` | Yes | Factory | List all available skills/slash commands |
 
 #### Task Management
 | Tool | Name | Read-Only | Pattern | Description |
@@ -975,7 +987,7 @@ All running services are stopped during graceful shutdown.
 
 ## 17. Skill / Slash Command System
 
-**Files:** `src/skills/index.ts`, `src/skills/builtinSkills.ts`
+**Files:** `src/skills/index.ts`, `src/skills/builtinSkills.ts`, `src/skills/customSkillStore.ts`
 
 Skills are reusable prompt-based or tool-based capabilities invoked via `/slash` commands.
 
@@ -987,6 +999,18 @@ interface SkillDefinition {
   promptTemplate?: string;   // Supports {{input}} placeholder
   requiredTools?: string[];
   userInvocable: boolean;
+}
+```
+
+### SkillRegistry (`src/skills/index.ts`)
+
+```typescript
+class SkillRegistry {
+  register(skill): void              // Throws if name already exists
+  registerOrReplace(skill): void     // Overwrites if name already exists
+  get(name): SkillDefinition | undefined
+  list(): SkillDefinition[]
+  expand(name, input): string | null // Replace {{input}} in promptTemplate
 }
 ```
 
@@ -1003,6 +1027,38 @@ interface SkillDefinition {
 | `/brief` | prompt | Toggle compact output mode |
 | `/plan` | prompt | Enter planning mode |
 | `/agent <desc>` | prompt | Create custom agent from natural language |
+| `/skill <desc>` | prompt | Create a custom slash command from natural language |
+
+### Custom Skills
+
+Custom skills mirror the custom agent pattern. Users create them via `/skill` or the `skill_create` tool, and they persist across sessions in `.custom-agents/skills.json`.
+
+**Custom Skill Store (`src/skills/customSkillStore.ts`):**
+
+```typescript
+interface PersistedSkillDefinition {
+  name: string;
+  description: string;
+  type: "prompt";              // Custom skills are always prompt-based
+  promptTemplate: string;      // Must include {{input}} placeholder
+  requiredTools?: string[];
+  userInvocable: true;         // Always user-invocable
+}
+
+class CustomSkillStore {
+  load(): Promise<PersistedSkillDefinition[]>   // Read from disk, [] if missing
+  save(skills): Promise<void>                    // Write JSON with version wrapper
+  add(skill): Promise<void>                      // Upsert by name
+  remove(name): Promise<boolean>                 // Delete by name
+  static toSkillDefinition(persisted): SkillDefinition  // Convert for registry
+}
+```
+
+**Key constraints:**
+- Custom skills are always `type: "prompt"` (tool-type skills require REPL-level code changes)
+- 10 built-in skill names are reserved and cannot be overwritten: `explain`, `commit`, `status`, `find`, `compact`, `diff`, `brief`, `plan`, `agent`, `skill`
+- The `promptTemplate` must include the `{{input}}` placeholder
+- Newly created skills are immediately available in the current session via `registerOrReplace()`
 
 ### Expansion Flow
 
@@ -1300,8 +1356,11 @@ process.exit(0)
 | `src/persistence/SessionPersistence.ts` | 148 | `SessionPersistence` | Conversation transcript save/load |
 | `src/plugins/index.ts` | 70 | `PluginManager`, `PluginDefinition` | Plugin lifecycle |
 | `src/services/index.ts` | 86 | `ServiceManager`, `ServiceDefinition` | Background service lifecycle |
-| `src/skills/index.ts` | 48 | `SkillRegistry`, `SkillDefinition` | Slash command system |
-| `src/skills/builtinSkills.ts` | 111 | 9 built-in skills | Skill definitions |
+| `src/skills/index.ts` | 53 | `SkillRegistry`, `SkillDefinition` | Slash command system |
+| `src/skills/builtinSkills.ts` | 127 | 10 built-in skills | Skill definitions |
+| `src/skills/customSkillStore.ts` | 80 | `CustomSkillStore`, `PersistedSkillDefinition` | Disk persistence for custom skills |
+| `src/tools/SkillCreateTool/SkillCreateTool.ts` | 97 | `createSkillCreateTool()` | Create custom slash commands |
+| `src/tools/SkillListTool/SkillListTool.ts` | 56 | `createSkillListTool()` | List all skills |
 | `src/types/config.ts` | 35 | `EnvConfigSchema`, `AppConfig` | Configuration types |
 | `src/types/messages.ts` | 43 | `Message`, `ToolCall`, etc. | OpenAI wire format types |
 | `src/utils/id.ts` | 5 | `generateId()` | UUID generation |
@@ -1353,9 +1412,15 @@ bun x tsc --noEmit            # Type check (strict mode)
 
 ### Adding a New Skill
 
+**Built-in skill:**
 1. Define `SkillDefinition` in `src/skills/builtinSkills.ts`
 2. Add to the `builtinSkills` array
 3. Users can invoke via `/skillname` in the REPL
+
+**Custom skill (runtime):**
+1. Use `/skill <description>` or the `skill_create` tool
+2. Skill is persisted to `.custom-agents/skills.json` and available immediately
+3. Custom skills are always prompt-based and survive restarts
 
 ### Data Directory Layout
 
@@ -1368,7 +1433,8 @@ bun x tsc --noEmit            # Type check (strict mode)
 ├── sessions/
 │   ├── <session-id>.json
 │   └── _latest.json
-└── agents.json                  # Custom agent definitions
+├── agents.json                  # Custom agent definitions
+└── skills.json                  # Custom skill definitions
 ```
 
 ---

@@ -79,6 +79,8 @@ Any LLM provider that speaks the OpenAI API format:
 | Create, track, and manage tasks with dependencies — all from the terminal | Explore and plan before coding. Approve the approach, then execute | Define your own agents with custom tool sets and system prompts |
 | **👥 Agent Teams** | **📬 Inter-Agent Mailbox** | **🔗 Task Dependencies** |
 | Spawn N agents that run in parallel, coordinated by a team lead | Teammates communicate via in-memory mailbox (send, broadcast, peek) | Tasks support blockedBy/blocks with atomic claiming and auto-unblock |
+| **🎯 Custom Skills** | | |
+| Create your own `/slash` commands from natural language — persisted across sessions | | |
 
 ---
 
@@ -178,6 +180,7 @@ The lead agent creates the team, teammates run in parallel, and the lead synthes
 | **Web** | `web_search`, `web_fetch` |
 | **Task Management** | `task_create`, `task_list`, `task_get`, `task_update`, `task_stop`, `task_output` |
 | **Agent Orchestration** | `agent_spawn`, `agent_create` |
+| **Skill Management** | `skill_create`, `skill_list` |
 | **Team Coordination** | `team_create`, `team_status`, `team_message`, `team_check_messages`, `team_task_claim` |
 | **Code Quality** | `lsp`, `notebook_edit` |
 | **Mode Control** | `enter_plan_mode`, `exit_plan_mode` |
@@ -197,6 +200,7 @@ The lead agent creates the team, teammates run in parallel, and the lead synthes
 | `/plan` | Enter planning mode — explore before implementing |
 | `/brief` | Toggle brief/compact output mode |
 | `/agent` | Create a custom agent from natural language |
+| `/skill` | Create a custom slash command from natural language |
 
 ---
 
@@ -285,6 +289,7 @@ src/
 - [x] One-liner install (`curl | bash`)
 - [x] Custom agent creation
 - [x] Agent Teams — parallel multi-agent coordination with mailbox + task dependencies
+- [x] Custom skills — user-defined slash commands that persist across sessions
 - [ ] RAG (Retrieval-Augmented Generation) for large codebases
 - [ ] MCP (Model Context Protocol) server support
 - [ ] Multi-model orchestration

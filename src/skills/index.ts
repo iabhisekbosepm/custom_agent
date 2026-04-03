@@ -30,6 +30,11 @@ export class SkillRegistry {
     this.skills.set(skill.name, skill);
   }
 
+  /** Register a skill, overwriting any existing skill with the same name. */
+  registerOrReplace(skill: SkillDefinition): void {
+    this.skills.set(skill.name, skill);
+  }
+
   get(name: string): SkillDefinition | undefined {
     return this.skills.get(name);
   }

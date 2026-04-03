@@ -97,6 +97,27 @@ Now call the agent_create tool with the generated definition.`,
   userInvocable: true,
 };
 
+export const SkillSkill: SkillDefinition = {
+  name: "skill",
+  description: "Create a custom slash command from a natural language description",
+  type: "prompt",
+  promptTemplate: `The user wants to create a custom slash command. Based on their description, generate a skill definition and call the skill_create tool.
+
+Guidelines:
+- **name**: Short lowercase, hyphens/underscores allowed (e.g., "test", "lint", "deploy")
+- **description**: Concise 1-sentence summary of what the command does
+- **promptTemplate**: The full prompt the LLM receives when the slash command is invoked.
+  MUST include {{input}} placeholder for user-provided text.
+  Should instruct the LLM which tools to use and how to format output.
+- **requiredTools**: Tool names the skill depends on (optional)
+
+User description: {{input}}
+
+Now call the skill_create tool with the generated definition.`,
+  requiredTools: ["skill_create"],
+  userInvocable: true,
+};
+
 export const builtinSkills: SkillDefinition[] = [
   ExplainSkill,
   CommitSkill,
@@ -107,4 +128,5 @@ export const builtinSkills: SkillDefinition[] = [
   BriefSkill,
   PlanSkill,
   AgentSkill,
+  SkillSkill,
 ];
