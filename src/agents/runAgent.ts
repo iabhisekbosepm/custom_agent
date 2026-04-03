@@ -7,6 +7,8 @@ import type { Logger } from "../utils/logger.js";
 import type { TaskManager } from "../tasks/TaskManager.js";
 import type { Message, UserMessage, SystemMessage } from "../types/messages.js";
 import type { KanbanStore } from "../kanban/KanbanStore.js";
+import type { ModelProfileStore } from "../models/ModelProfileStore.js";
+import { resolveModelConfig } from "../models/resolveModelConfig.js";
 import { generateId } from "../utils/id.js";
 import { runQueryLoop } from "../query/query.js";
 import { createStore } from "../state/store.js";
@@ -27,6 +29,8 @@ export interface RunAgentOptions {
   onAgentActivity?: (toolCalls: ActiveToolCall[]) => void;
   /** Optional KanbanStore for injecting board context into agent runs. */
   kanbanStore?: KanbanStore;
+  /** Optional ModelProfileStore for per-agent model overrides. */
+  modelProfileStore?: ModelProfileStore;
 }
 
 /**
@@ -91,11 +95,19 @@ export async function runAgent(opts: RunAgentOptions): Promise<{
     agentRegistry = scoped;
   }
 
+  // Resolve per-agent model profile (falls back to global config if none)
+  const modelOverrides = opts.modelProfileStore
+    ? await resolveModelConfig(config, definition.modelProfile, opts.modelProfileStore, log)
+    : { model: config.model, apiKey: config.apiKey, baseUrl: config.baseUrl };
+
   // Build agent-scoped config
   const agentConfig: AppConfig = {
     ...config,
     maxTurns: definition.maxTurns,
     systemPrompt: definition.systemPrompt + taskTrackingPrompt + kanbanTrackingPrompt,
+    model: modelOverrides.model,
+    apiKey: modelOverrides.apiKey,
+    baseUrl: modelOverrides.baseUrl,
   };
 
   // Build messages

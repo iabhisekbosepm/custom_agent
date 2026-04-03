@@ -66,6 +66,7 @@ import { createTeamTaskClaimTool } from "../tools/TeamTaskClaimTool/TeamTaskClai
 // Kanban
 import { KanbanStore } from "../kanban/KanbanStore.js";
 import { createKanbanTool } from "../tools/KanbanTool/KanbanTool.js";
+import { ModelProfileStore } from "../models/ModelProfileStore.js";
 
 /** Base directory for all persisted data. */
 const DATA_DIR = join(process.cwd(), ".custom-agents");
@@ -164,6 +165,7 @@ export interface InitResult {
   serviceManager: ServiceManager;
   teamManager: TeamManager;
   kanbanStore: KanbanStore;
+  modelProfileStore: ModelProfileStore;
 }
 
 /**
@@ -254,6 +256,9 @@ export async function initialize(): Promise<InitResult> {
   // Create kanban store (needed early for agent spawn tool)
   const kanbanStore = new KanbanStore(DATA_DIR);
 
+  // Create model profile store (per-agent model overrides)
+  const modelProfileStore = new ModelProfileStore(DATA_DIR);
+
   // Create tool registry and register tools
   const registry = new ToolRegistry();
   registry.register(GrepTool);
@@ -262,7 +267,7 @@ export async function initialize(): Promise<InitResult> {
   registry.register(FileWriteTool);
   registry.register(FileEditTool);
   registry.register(ShellTool);
-  registry.register(createAgentSpawnTool(agentRouter, taskManager, hooks, registry, kanbanStore));
+  registry.register(createAgentSpawnTool(agentRouter, taskManager, hooks, registry, kanbanStore, modelProfileStore));
   registry.register(createAgentCreateTool(agentRouter, customAgentStore));
 
   // Task management tools (factory — need taskManager)
@@ -306,7 +311,7 @@ export async function initialize(): Promise<InitResult> {
   registry.register(createKanbanTool(kanbanStore));
 
   // Create team manager
-  const teamManager = new TeamManager(agentRouter, taskManager, hooks, registry, log);
+  const teamManager = new TeamManager(agentRouter, taskManager, hooks, registry, log, modelProfileStore);
 
   // Team tools (need teamManager + registry for scoped registries)
   // team_message, team_check_messages, team_task_claim are registered in the base
@@ -384,5 +389,6 @@ export async function initialize(): Promise<InitResult> {
     serviceManager,
     teamManager,
     kanbanStore,
+    modelProfileStore,
   };
 }

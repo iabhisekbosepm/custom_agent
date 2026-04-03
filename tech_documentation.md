@@ -51,6 +51,7 @@ CustomAgents is a **terminal-based AI coding assistant runtime**. It provides sp
 - **Side-by-side diff viewer** with vim-like keyboard navigation
 - **Custom agent creation** -- define new agents from natural language that persist across sessions
 - **Custom skill creation** -- define new slash commands from natural language that persist across sessions
+- **Multi-model orchestration** -- assign different LLM models to different agents via named model profiles
 
 ### Dependencies
 
@@ -142,6 +143,10 @@ src/
 ├── kanban/
 │   ├── KanbanStore.ts          # Persistent kanban board (cards, tasks, columns)
 │   └── KanbanStore.test.ts     # KanbanStore unit tests
+├── models/
+│   ├── ModelProfileStore.ts    # Per-agent model profiles (Zod schema, CRUD, disk persistence)
+│   ├── resolveModelConfig.ts   # Resolve profile name → {model, apiKey, baseUrl}
+│   └── index.ts                # Barrel exports
 ├── teams/
 │   ├── TeamTypes.ts            # Team, Teammate types and status enums
 │   ├── Mailbox.ts              # In-memory inter-agent messaging
@@ -271,6 +276,7 @@ src/index.ts  -->  src/entrypoints/cli.tsx  -->  src/entrypoints/init.ts
 11. new SkillRegistry()      -- Register built-in slash commands
 11a. new CustomSkillStore()  -- Load persisted custom skills
 11b. new KanbanStore()       -- Persistent project kanban board
+11c. new ModelProfileStore() -- Per-agent model profiles (.custom-agents/models.json)
 12. new ToolRegistry()       -- Register all 35+ tools (incl. skill_create, skill_list, kanban)
 13. new TeamManager()        -- Parallel multi-agent coordination
 14. new PluginManager()      -- Activate plugins
@@ -294,8 +300,9 @@ EnvConfig --> AppConfig --> Logger
                        --> SkillRegistry (builtinSkills + customSkills)
                        --> CustomSkillStore (load persisted custom skills)
                        --> KanbanStore (persistent project board)
+                       --> ModelProfileStore (per-agent model profiles)
                        --> ToolRegistry (all tools, needs AgentRouter + TaskManager + SkillRegistry + KanbanStore)
-                       --> TeamManager (needs AgentRouter + TaskManager + HookManager + ToolRegistry)
+                       --> TeamManager (needs AgentRouter + TaskManager + HookManager + ToolRegistry + ModelProfileStore)
                        --> PluginManager
                        --> ServiceManager
                        --> ShutdownHandlers
@@ -333,6 +340,49 @@ interface AppConfig {
 ```
 
 The `systemPrompt` is a comprehensive instruction set (~2KB) describing all available tools and workflows. It is built during initialization and can be extended by agents and teams.
+
+### Per-Agent Model Profiles (Optional)
+
+**File:** `src/models/ModelProfileStore.ts`
+
+Named model profiles allow routing different agents to different LLMs. Stored in `.custom-agents/models.json`:
+
+```json
+{
+  "version": 1,
+  "profiles": [
+    { "name": "fast", "model": "openai/gpt-4o-mini", "apiKey": "sk-...", "baseUrl": "https://openrouter.ai/api/v1" },
+    { "name": "reasoning", "model": "anthropic/claude-opus-4", "apiKey": "sk-...", "baseUrl": "https://openrouter.ai/api/v1" }
+  ]
+}
+```
+
+```typescript
+class ModelProfileStore {
+  load(): Promise<ModelProfile[]>           // Read from disk, [] if missing
+  save(profiles): Promise<void>             // Write JSON with version wrapper
+  add(profile): Promise<void>               // Upsert by name
+  remove(name): Promise<boolean>            // Delete by name
+  get(name): Promise<ModelProfile | undefined>  // Single profile lookup
+}
+```
+
+**Resolution (`src/models/resolveModelConfig.ts`):**
+
+```typescript
+async function resolveModelConfig(
+  config: AppConfig,
+  modelProfileName: string | undefined,
+  profileStore: ModelProfileStore,
+  log: Logger,
+): Promise<{ model: string; apiKey: string; baseUrl: string }>
+```
+
+- No profile name → returns global config (backward compatible)
+- Profile not found → logs warning, returns global config (graceful fallback)
+- Profile found → returns profile's model/apiKey/baseUrl
+
+Both `runAgent()` and `TeamManager.runTeammate()` call this before building `agentConfig`. Existing agents without `modelProfile` are unaffected.
 
 ---
 
@@ -562,6 +612,7 @@ interface AgentDefinition {
   allowedTools: string[];    // Empty = all tools
   maxTurns: number;          // Per-agent turn limit
   mode: AgentMode;           // "sync" | "background" | "forked"
+  modelProfile?: string;     // Optional: named model profile from models.json
   prepareMessages?: (msgs: Message[]) => Message[];
 }
 ```
@@ -585,9 +636,10 @@ All agents have access to `tool_search` for discovering available tools, task ma
 ```
 runAgent(definition, userMessage, config, registry, ...):
   1. Create a tracking task in TaskManager
-  2. Build agent-scoped config (maxTurns, systemPrompt + task tracking + kanban tracking instructions)
-  3. Build SCOPED ToolRegistry from agent's allowedTools + task tools + kanban tool
-  4. Inject kanban board summary (from KanbanStore.getSummary()) into system prompt if available
+  2. Resolve per-agent model profile via resolveModelConfig() (falls back to global config if none)
+  3. Build agent-scoped config (maxTurns, systemPrompt + task tracking + kanban tracking + model overrides)
+  4. Build SCOPED ToolRegistry from agent's allowedTools + task tools + kanban tool
+  5. Inject kanban board summary (from KanbanStore.getSummary()) into system prompt if available
   5. Build message array (system + optional parent messages + user message)
   6. Create ISOLATED AppState store for the agent
   7. Subscribe to agent's internal tool calls for parent UI forwarding
@@ -606,7 +658,7 @@ Registry mapping agent names to definitions. Supports `register()`, `get()`, `li
 
 ### Custom Agent Store (`src/agents/customAgentStore.ts`)
 
-Persists user-created agent definitions to `.custom-agents/agents.json`. Supports load, save, add (upsert), and remove operations. Custom agents are loaded during initialization and registered in the AgentRouter.
+Persists user-created agent definitions to `.custom-agents/agents.json`. Supports load, save, add (upsert), and remove operations. Custom agents are loaded during initialization and registered in the AgentRouter. Custom agents can include an optional `modelProfile` field referencing a named profile from `models.json`.
 
 ---
 
@@ -665,6 +717,7 @@ Core orchestrator for team lifecycle:
 - **`run(teamId, config, registry)`** -- Launches all teammates via `Promise.allSettled()`:
   - Each teammate gets an isolated AppState store
   - Each teammate gets a scoped ToolRegistry (agent's allowed tools + team tools + task tools)
+  - Each teammate's model is resolved via `resolveModelConfig()` (per-agent model profiles)
   - Each teammate's system prompt is augmented with team context
   - Tool activity is forwarded to team state for UI rendering
 - **`get(teamId)`**, **`list()`** -- Query team state
@@ -1300,6 +1353,7 @@ Promise.allSettled([             <-- All run concurrently
   |
   Each teammate:
   +--> buildTeammateRegistry()   -- Scoped tools
+  +--> resolveModelConfig()      -- Per-agent model profile
   +--> buildTeammatePromptAddendum() -- Team context
   +--> createStore<AppState>()   -- Isolated state
   +--> runQueryLoop()            -- Agent's own loop
@@ -1353,6 +1407,9 @@ process.exit(0)
 | `src/kanban/KanbanStore.test.ts` | ~225 | Tests | KanbanStore unit tests |
 | `src/tools/KanbanTool/KanbanTool.ts` | ~200 | `createKanbanTool()` | Kanban board management tool |
 | `src/tools/KanbanTool/formatBoard.ts` | ~80 | `formatBoard()` | Board display formatting |
+| `src/models/ModelProfileStore.ts` | ~80 | `ModelProfileStore`, `ModelProfile`, `ModelProfileSchema` | Per-agent model profiles (Zod schema, CRUD, disk persistence) |
+| `src/models/resolveModelConfig.ts` | ~33 | `resolveModelConfig()` | Profile name → {model, apiKey, baseUrl} resolution |
+| `src/models/index.ts` | 3 | Barrel exports | Module re-exports |
 | `src/teams/TeamTypes.ts` | 48 | Team types + interfaces | Type definitions for teams |
 | `src/teams/Mailbox.ts` | 93 | `Mailbox` | In-memory inter-agent messaging |
 | `src/teams/TeamManager.ts` | 260 | `TeamManager` | Team lifecycle orchestrator |
@@ -1463,7 +1520,8 @@ bun x tsc --noEmit            # Type check (strict mode)
 │   └── _latest.json
 ├── agents.json                  # Custom agent definitions
 ├── skills.json                  # Custom skill definitions
-└── kanban.json                  # Persistent kanban board (cards, tasks, columns)
+├── kanban.json                  # Persistent kanban board (cards, tasks, columns)
+└── models.json                  # Per-agent model profiles (optional)
 ```
 
 ---

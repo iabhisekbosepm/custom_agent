@@ -5,6 +5,7 @@ import type { AgentRouter } from "../../agents/AgentRouter.js";
 import type { TaskManager } from "../../tasks/TaskManager.js";
 import type { HookManager } from "../../hooks/index.js";
 import type { KanbanStore } from "../../kanban/KanbanStore.js";
+import type { ModelProfileStore } from "../../models/ModelProfileStore.js";
 import { runAgent } from "../../agents/runAgent.js";
 
 const AgentSpawnInput = z.object({
@@ -25,6 +26,7 @@ export function createAgentSpawnTool(
   hooks: HookManager,
   registry: ToolRegistry,
   kanbanStore: KanbanStore,
+  modelProfileStore?: ModelProfileStore,
 ): Tool<AgentSpawnInput> {
   return {
     name: "agent_spawn",
@@ -60,6 +62,7 @@ export function createAgentSpawnTool(
           taskManager,
           log: context.log,
           kanbanStore,
+          modelProfileStore,
           onTaskCreated: (taskId) => {
             context.setAppState((s) => ({ ...s, activeAgentTaskId: taskId }));
           },

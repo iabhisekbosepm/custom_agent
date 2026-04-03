@@ -20,6 +20,8 @@ export interface AgentDefinition {
   maxTurns: number;
   /** Default execution mode. */
   mode: AgentMode;
+  /** Optional model profile name (from models.json) to override global config. */
+  modelProfile?: string;
   /** Optional pre-processing of the agent's initial messages. */
   prepareMessages?: (messages: Message[]) => Message[];
 }

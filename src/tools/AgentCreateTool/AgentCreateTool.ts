@@ -44,6 +44,11 @@ const AgentCreateInput = z.object({
     .enum(["sync", "background", "forked"])
     .default("sync")
     .describe("Execution mode (default: sync)"),
+  modelProfile: z
+    .string()
+    .max(40)
+    .optional()
+    .describe("Name of a model profile (from models.json) to use instead of the global model"),
 });
 
 type AgentCreateInput = z.infer<typeof AgentCreateInput>;
@@ -80,6 +85,7 @@ export function createAgentCreateTool(
         allowedTools: input.allowedTools,
         maxTurns: input.maxTurns,
         mode: input.mode,
+        ...(input.modelProfile ? { modelProfile: input.modelProfile } : {}),
       };
 
       // Persist to disk
@@ -89,17 +95,18 @@ export function createAgentCreateTool(
       agentRouter.registerOrReplace(definition);
 
       const toolList = input.allowedTools.join(", ");
-      return {
-        content: [
-          `Agent "${input.name}" created successfully.`,
-          `  Description: ${input.description}`,
-          `  Tools: ${toolList}`,
-          `  Max turns: ${input.maxTurns}`,
-          `  Mode: ${input.mode}`,
-          "",
-          `You can now use agent_spawn with agent="${input.name}" to invoke it.`,
-        ].join("\n"),
-      };
+      const lines = [
+        `Agent "${input.name}" created successfully.`,
+        `  Description: ${input.description}`,
+        `  Tools: ${toolList}`,
+        `  Max turns: ${input.maxTurns}`,
+        `  Mode: ${input.mode}`,
+      ];
+      if (input.modelProfile) {
+        lines.push(`  Model profile: ${input.modelProfile}`);
+      }
+      lines.push("", `You can now use agent_spawn with agent="${input.name}" to invoke it.`);
+      return { content: lines.join("\n") };
     },
   };
 }

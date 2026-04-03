@@ -79,8 +79,8 @@ Any LLM provider that speaks the OpenAI API format:
 | Create, track, and manage tasks with dependencies — all from the terminal | Explore and plan before coding. Approve the approach, then execute | Define your own agents with custom tool sets and system prompts |
 | **👥 Agent Teams** | **📬 Inter-Agent Mailbox** | **🔗 Task Dependencies** |
 | Spawn N agents that run in parallel, coordinated by a team lead | Teammates communicate via in-memory mailbox (send, broadcast, peek) | Tasks support blockedBy/blocks with atomic claiming and auto-unblock |
-| **🎯 Custom Skills** | **📋 Kanban Board** | |
-| Create your own `/slash` commands from natural language — persisted across sessions | Persistent project board with columns (backlog → done), cards, sub-tasks, and real-time agent progress tracking via `/board` | |
+| **🎯 Custom Skills** | **📋 Kanban Board** | **🔀 Multi-Model Orchestration** |
+| Create your own `/slash` commands from natural language — persisted across sessions | Persistent project board with columns (backlog → done), cards, sub-tasks, and real-time agent progress tracking via `/board` | Assign different LLM models per agent — fast models for exploration, powerful models for coding |
 
 ---
 
@@ -146,7 +146,7 @@ Five built-in agents, each designed for a specific workflow:
 
 All agents also have access to task management tools (`task_create`, `task_list`, `task_get`, `task_update`), the `kanban` tool for real-time board progress updates, and `tool_search` for discovering available capabilities. Solo agents receive a **scoped tool registry** containing only their allowed tools (matching the team agent pattern).
 
-You can also create **custom agents** with `/agent` — define your own tool sets, system prompts, and constraints.
+You can also create **custom agents** with `/agent` — define your own tool sets, system prompts, and constraints. Custom agents can optionally reference a **model profile** to use a different LLM than the global default.
 
 ### Agent Teams
 
@@ -230,6 +230,32 @@ CONTEXT_BUDGET=120000
 
 **Per-project override:** Drop a `.env` file in your project root — it takes priority over the global config.
 
+### Per-Agent Model Profiles (Optional)
+
+You can assign different models to different agents by creating `.custom-agents/models.json`:
+
+```json
+{
+  "version": 1,
+  "profiles": [
+    {
+      "name": "fast",
+      "model": "openai/gpt-4o-mini",
+      "apiKey": "sk-or-v1-...",
+      "baseUrl": "https://openrouter.ai/api/v1"
+    },
+    {
+      "name": "reasoning",
+      "model": "anthropic/claude-opus-4",
+      "apiKey": "sk-or-v1-...",
+      "baseUrl": "https://openrouter.ai/api/v1"
+    }
+  ]
+}
+```
+
+Then when creating a custom agent via `/agent`, set `modelProfile: "fast"` to route that agent to the specified model. Agents without a `modelProfile` continue using the global `MODEL` from your `.env` — no changes needed for existing setups.
+
 ---
 
 <h2 id="development">Development</h2>
@@ -274,6 +300,7 @@ src/
 ├── tasks/        # Task tracking with dependencies + claiming
 ├── teams/        # Agent Teams (parallel multi-agent coordination)
 ├── kanban/       # Persistent Kanban board (KanbanStore, cards, tasks)
+├── models/       # Per-agent model profiles (ModelProfileStore, resolution)
 ├── tools/        # 35+ built-in tools
 ├── types/        # Shared types
 └── utils/        # Utilities (logger, diff, env, shutdown)
@@ -294,9 +321,9 @@ src/
 - [x] Agent Teams — parallel multi-agent coordination with mailbox + task dependencies
 - [x] Custom skills — user-defined slash commands that persist across sessions
 - [x] Kanban board — persistent project board with agent-driven task execution and real-time progress
+- [x] Multi-model orchestration — per-agent model profiles for routing agents to different LLMs
 - [ ] RAG (Retrieval-Augmented Generation) for large codebases
 - [ ] MCP (Model Context Protocol) server support
-- [ ] Multi-model orchestration
 - [ ] VS Code extension
 
 ---

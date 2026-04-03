@@ -20,6 +20,8 @@ import { buildTeammatePromptAddendum } from "./teammatePrompt.js";
 import { runQueryLoop } from "../query/query.js";
 import { createStore } from "../state/store.js";
 import { createDefaultAppState, type AppState } from "../state/AppStateStore.js";
+import type { ModelProfileStore } from "../models/ModelProfileStore.js";
+import { resolveModelConfig } from "../models/resolveModelConfig.js";
 
 /**
  * Manages the lifecycle of agent teams: creation, parallel execution, and shutdown.
@@ -34,7 +36,8 @@ export class TeamManager {
     private taskManager: TaskManager,
     private hooks: HookManager,
     private baseRegistry: ToolRegistry,
-    log: Logger
+    log: Logger,
+    private modelProfileStore?: ModelProfileStore,
   ) {
     this.log = log.child("teams");
   }
@@ -245,10 +248,18 @@ export class TeamManager {
       rootTaskId: team.rootTaskId,
     });
 
+    // Resolve per-agent model profile (falls back to global config if none)
+    const modelOverrides = this.modelProfileStore
+      ? await resolveModelConfig(config, td.agentDef.modelProfile, this.modelProfileStore, this.log)
+      : { model: config.model, apiKey: config.apiKey, baseUrl: config.baseUrl };
+
     const agentConfig: AppConfig = {
       ...config,
       maxTurns: td.agentDef.maxTurns,
       systemPrompt: td.agentDef.systemPrompt + promptAddendum,
+      model: modelOverrides.model,
+      apiKey: modelOverrides.apiKey,
+      baseUrl: modelOverrides.baseUrl,
     };
 
     // Build messages

@@ -10,6 +10,7 @@ export interface PersistedAgentDefinition {
   allowedTools: string[];
   maxTurns: number;
   mode: AgentMode;
+  modelProfile?: string;
 }
 
 interface StoreFile {

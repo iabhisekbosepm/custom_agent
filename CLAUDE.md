@@ -41,6 +41,7 @@ src/
 ├── state/           # Application state management (store, AppStateStore)
 ├── tasks/           # Task tracking with dependencies + atomic claiming
 ├── kanban/          # Persistent Kanban board (KanbanStore, cards, sub-tasks, board formatting)
+├── models/          # Per-agent model profiles (ModelProfileStore, resolveModelConfig)
 ├── teams/           # Agent Teams (parallel multi-agent coordination, mailbox, scoped registries)
 ├── tools/           # 35+ built-in tools
 ├── types/           # Shared types (config, messages)
@@ -67,7 +68,7 @@ Five built-in agents, each with different capabilities and constraints:
 | documenter | Documentation generation   | grep, glob, file_read/write/edit, shell, web_*, tool_search, task_*, todo_write, kanban | 12 |
 | architect  | Architecture & design      | grep, glob, file_read, shell, lsp, web_*, tool_search, task_*, todo_write, kanban | 12 |
 
-Custom agents can be created via `/agent` or `agent_create` tool, persisted in `.custom-agents/agents.json`.
+Custom agents can be created via `/agent` or `agent_create` tool, persisted in `.custom-agents/agents.json`. Custom agents support an optional `modelProfile` field to route them to a specific LLM (see Model Profile System below).
 Custom skills can be created via `/skill` or `skill_create` tool, persisted in `.custom-agents/skills.json`.
 
 ### Agent Teams (`src/teams/`)
@@ -80,6 +81,14 @@ Parallel multi-agent coordination system:
 - **Types** (`TeamTypes.ts`) — `TeamStatus`: forming → running → completed/failed/shutdown
 
 Key design: single-process Bun event loop = no race conditions for `claim()`. Teammates share a global `TaskManager` for task coordination.
+
+### Model Profile System (`src/models/`)
+Per-agent model orchestration via named profiles stored in `.custom-agents/models.json`:
+
+- **ModelProfileStore** (`ModelProfileStore.ts`) — file-backed store: `load()`, `save()`, `add()`, `remove()`, `get(name)`. Each profile has `name`, `model`, `apiKey`, `baseUrl`.
+- **resolveModelConfig** (`resolveModelConfig.ts`) — resolves a profile name to `{model, apiKey, baseUrl}`. Falls back to global config if no profile name or profile not found.
+- Both `runAgent()` and `TeamManager.runTeammate()` call `resolveModelConfig()` before building the agent's `AppConfig`, so each agent can use a different LLM.
+- Fully backward-compatible: agents without `modelProfile` use the global `.env` config. Missing `models.json` returns empty array.
 
 ### Tool System (`src/tools/`)
 
@@ -149,6 +158,10 @@ MAX_TURNS=20
 CONTEXT_BUDGET=120000
 ```
 
+### Per-Agent Model Profiles (Optional)
+
+`.custom-agents/models.json` stores named model profiles. Agents with `modelProfile: "name"` use that profile's `model`/`apiKey`/`baseUrl` instead of the global config. Agents without a profile use the global `.env` values — no migration needed.
+
 ## Key Patterns & Conventions
 
 - **All imports use `.js` extension** — Bun resolves `.ts` files automatically with ES modules
@@ -163,3 +176,4 @@ CONTEXT_BUDGET=120000
 - **Agents run in isolated stores** — internal state doesn't pollute parent, but tool activity is forwarded for UI
 - **Both solo and team agents get scoped `ToolRegistry`** — only their agent's allowed tools + task + kanban tools
 - **Kanban board** (`src/kanban/`) — persistent project board (`.custom-agents/kanban.json`) with columns: backlog → planning → in-progress → review → done. Sub-agents receive board summary + tracking prompts and update tasks in real-time via the `kanban` tool
+- **Model profiles** (`src/models/`) — per-agent model overrides via `ModelProfileStore` (`.custom-agents/models.json`). `resolveModelConfig()` resolves profile name → `{model, apiKey, baseUrl}` with graceful fallback to global config
