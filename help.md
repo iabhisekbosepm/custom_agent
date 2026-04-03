@@ -476,3 +476,12 @@ Parallel multi-agent coordination system:
 - Multi-process / tmux split panes (keep everything in-process)
 - File-based team config persistence
 - Session resumption for teams
+
+
+"Per-agent multi-model orchestration" to the CustomAgents codebase. Here's the full context:
+
+       Requirements
+
+       1. Per-agent model assignment — Different agents can use different models (e.g., explorer uses gpt-4o-mini, coder uses claude-opus)
+       2. Custom agent support — Custom agents (created via /agent or agent_create) can also specify a model
+       3. Config file — A .custom-agents/models.json file defining model profiles

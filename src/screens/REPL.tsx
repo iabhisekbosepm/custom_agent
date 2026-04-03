@@ -196,6 +196,16 @@ export function REPL({ store }: REPLProps) {
           })
           .catch((err) => {
             log.error("Compact failed", { error: String(err) });
+            store.set((s) => ({
+              ...s,
+              messages: [
+                ...s.messages,
+                {
+                  role: "system" as const,
+                  content: `[Compact failed: ${err instanceof Error ? err.message : String(err)}]`,
+                },
+              ],
+            }));
           });
         return;
       }

@@ -19,7 +19,17 @@ export function MessageList({ messages }: MessageListProps) {
 function MessageRow({ message }: { message: Message }) {
   switch (message.role) {
     case "system":
-      return null; // Don't render system messages
+      // Render user-facing feedback (e.g. /compact, /diff results)
+      if (message.content && message.content.startsWith("[")) {
+        return (
+          <Box>
+            <Text color="gray" dimColor>
+              {message.content}
+            </Text>
+          </Box>
+        );
+      }
+      return null; // Don't render internal system messages
 
     case "user":
       return (
