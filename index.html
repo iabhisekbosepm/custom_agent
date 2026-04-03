@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Custom Agents — Full Technical Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --bg2: #111318;
+    --bg3: #171a21;
+    --border: #232630;
+    --border2: #2e3340;
+    --gold: #f0b429;
+    --gold2: #ffd166;
+    --teal: #1de9b6;
+    --blue: #4dabf7;
+    --red: #ff6b6b;
+    --purple: #cc5de8;
+    --text: #e8eaf0;
+    --text2: #9ba3b5;
+    --text3: #5c6478;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --radius: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    padding: 24px 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 0 24px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .sidebar-logo .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--gold);
+    background: rgba(240,180,41,0.1);
+    border: 1px solid rgba(240,180,41,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .sidebar-logo h1 {
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .sidebar-logo p {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .sidebar nav { padding: 0 12px; }
+
+  .nav-section {
+    margin-bottom: 4px;
+  }
+
+  .nav-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text3);
+    text-transform: uppercase;
+    padding: 12px 12px 4px;
+    display: block;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 12px;
+    transition: all 0.15s;
+    line-height: 1.3;
+  }
+
+  .nav-link:hover, .nav-link.active {
+    background: rgba(240,180,41,0.07);
+    color: var(--gold);
+  }
+
+  .nav-link .icon { opacity: 0.6; font-size: 13px; width: 16px; text-align: center; }
+
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    max-width: 1000px;
+    padding: 48px 48px 96px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    margin-bottom: 64px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(240,180,41,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--gold);
+  }
+
+  .hero h1 {
+    font-family: var(--sans);
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .hero h1 span { color: var(--gold); }
+
+  .hero-sub {
+    font-size: 14px;
+    color: var(--text2);
+    max-width: 560px;
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .meta-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .meta-value { font-size: 13px; color: var(--teal); font-weight: 500; }
+
+  /* ── SECTIONS ── */
+  section { margin-bottom: 64px; scroll-margin-top: 24px; }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-number {
+    font-size: 11px;
+    color: var(--gold);
+    font-weight: 600;
+    background: rgba(240,180,41,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  h2 {
+    font-family: var(--sans);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 32px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h3::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: var(--gold);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  h4 {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gold2);
+    margin: 20px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  p { color: var(--text2); line-height: 1.8; margin-bottom: 12px; }
+  p strong { color: var(--text); font-weight: 600; }
+
+  /* ── CARDS & BOXES ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--border2); }
+
+  .card-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* ── CODE BLOCKS ── */
+  pre, code {
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  pre {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  code {
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--teal);
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .comment { color: var(--text3); }
+  .kw { color: var(--purple); }
+  .str { color: var(--gold2); }
+  .fn { color: var(--blue); }
+  .num { color: var(--teal); }
+  .type { color: var(--gold); }
+
+  /* ── DIAGRAMS ── */
+  .diagram-wrap {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+
+  svg text { font-family: var(--mono); }
+
+  /* ── TABLE ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+
+  th {
+    background: var(--bg3);
+    color: var(--gold);
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border2);
+  }
+
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  td strong { color: var(--text); }
+  td code { font-size: 11px; }
+
+  /* ── TAGS ── */
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    margin: 1px;
+  }
+
+  .tag-gold { background: rgba(240,180,41,0.12); color: var(--gold); border: 1px solid rgba(240,180,41,0.2); }
+  .tag-teal { background: rgba(29,233,182,0.1); color: var(--teal); border: 1px solid rgba(29,233,182,0.2); }
+  .tag-blue { background: rgba(77,171,247,0.1); color: var(--blue); border: 1px solid rgba(77,171,247,0.2); }
+  .tag-red { background: rgba(255,107,107,0.1); color: var(--red); border: 1px solid rgba(255,107,107,0.2); }
+  .tag-purple { background: rgba(204,93,232,0.1); color: var(--purple); border: 1px solid rgba(204,93,232,0.2); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--gold);
+    background: rgba(240,180,41,0.05);
+    padding: 14px 20px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+  }
+
+  .callout.teal { border-color: var(--teal); background: rgba(29,233,182,0.05); }
+  .callout.blue { border-color: var(--blue); background: rgba(77,171,247,0.05); }
+  .callout.red { border-color: var(--red); background: rgba(255,107,107,0.05); }
+
+  .callout p { margin: 0; font-size: 13px; }
+  .callout strong { color: var(--gold); }
+  .callout.teal strong { color: var(--teal); }
+  .callout.blue strong { color: var(--blue); }
+
+  /* ── FLOW ARROWS ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+
+  .flow-step {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .flow-step .num {
+    width: 18px; height: 18px;
+    background: var(--gold);
+    color: #000;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .flow-arrow {
+    color: var(--text3);
+    font-size: 16px;
+    padding: 0 4px;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-left: 260px;
+    padding: 24px 48px;
+    border-top: 1px solid var(--border);
+    color: var(--text3);
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ── AGENT CARD ── */
+  .agent-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 20px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .agent-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+
+  .agent-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .agent-card.explorer::before { background: var(--teal); }
+  .agent-card.coder::before { background: var(--gold); }
+  .agent-card.reviewer::before { background: var(--red); }
+  .agent-card.documenter::before { background: var(--blue); }
+  .agent-card.architect::before { background: var(--purple); }
+
+  .agent-name {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .agent-desc { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.6; }
+
+  .agent-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .agent-stat {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 10px;
+    display: flex;
+    gap: 16px;
+  }
+
+  .agent-stat span { display: flex; align-items: center; gap: 4px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="badge">v1.1.0</div>
+    <h1>Custom Agents</h1>
+    <p>Terminal-native AI coding assistant — full documentation</p>
+  </div>
+  <nav>
+    <span class="nav-label">Overview</span>
+    <a href="#overview" class="nav-link"><span class="icon">◈</span> What is Custom Agents?</a>
+    <a href="#architecture" class="nav-link"><span class="icon">◈</span> System Architecture</a>
+    <a href="#dataflow" class="nav-link"><span class="icon">◈</span> Data Flow</a>
+
+    <span class="nav-label">Core Engine</span>
+    <a href="#query-loop" class="nav-link"><span class="icon">◈</span> Query Loop</a>
+    <a href="#streaming" class="nav-link"><span class="icon">◈</span> Streaming + Compaction</a>
+    <a href="#tools" class="nav-link"><span class="icon">◈</span> Tool Registry (35+ Tools)</a>
+
+    <span class="nav-label">Agents</span>
+    <a href="#builtin-agents" class="nav-link"><span class="icon">◈</span> 5 Built-in Agents</a>
+    <a href="#custom-agents" class="nav-link"><span class="icon">◈</span> Custom Agents</a>
+    <a href="#teams" class="nav-link"><span class="icon">◈</span> Agent Teams</a>
+    <a href="#mailbox" class="nav-link"><span class="icon">◈</span> Inter-Agent Mailbox</a>
+
+    <span class="nav-label">Features</span>
+    <a href="#skills" class="nav-link"><span class="icon">◈</span> Slash Commands / Skills</a>
+    <a href="#kanban" class="nav-link"><span class="icon">◈</span> Kanban Board</a>
+    <a href="#tasks" class="nav-link"><span class="icon">◈</span> Task Management</a>
+    <a href="#memory" class="nav-link"><span class="icon">◈</span> Memory + Persistence</a>
+    <a href="#models" class="nav-link"><span class="icon">◈</span> Multi-Model Orchestration</a>
+    <a href="#plugins" class="nav-link"><span class="icon">◈</span> Plugin System + Hooks</a>
+
+    <span class="nav-label">Operations</span>
+    <a href="#config" class="nav-link"><span class="icon">◈</span> Configuration</a>
+    <a href="#install" class="nav-link"><span class="icon">◈</span> Installation</a>
+    <a href="#techstack" class="nav-link"><span class="icon">◈</span> Tech Stack</a>
+  </nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">Technical Documentation</div>
+    <h1>Custom <span>Agents</span></h1>
+    <p class="hero-sub">An open-source, terminal-native AI coding assistant. Like Claude Code — but you own it. Runs any OpenAI-compatible model. 5 specialized agents, 35+ tools, parallel teams, persistent kanban, and a plugin system built for extensibility.</p>
+    <div class="hero-meta">
+      <div class="meta-item">
+        <span class="meta-label">Runtime</span>
+        <span class="meta-value">Bun</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Language</span>
+        <span class="meta-value">TypeScript (strict)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">UI</span>
+        <span class="meta-value">React 18 + Ink</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Tools</span>
+        <span class="meta-value">35+</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Agents</span>
+        <span class="meta-value">5 built-in + custom</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">LLM API</span>
+        <span class="meta-value">Any OpenAI-compatible</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 1 — OVERVIEW                   -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="overview">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>What is Custom Agents?</h2>
+    </div>
+
+    <p>Custom Agents is a <strong>fully terminal-native AI coding assistant</strong>. You interact with it through your terminal — there is no browser, no IDE plugin, and no cloud dashboard. The application renders its interactive UI using <strong>React + Ink</strong>, which renders React components directly inside the terminal instead of a browser DOM.</p>
+
+    <p>At its heart, Custom Agents is a <strong>tool-calling AI loop</strong>. You send a natural language instruction; the AI thinks, selects tools, executes them (reading files, running shell commands, searching the web, editing code), reads the results, and continues until it has a complete answer or solution. This loop is orchestrated through the <strong>Query Loop</strong> — the core engine of the entire system.</p>
+
+    <p>What distinguishes Custom Agents from simpler AI assistants is its <strong>multi-agent architecture</strong>. Instead of a single monolithic AI, it ships five specialized agents (Explorer, Coder, Reviewer, Documenter, Architect), each with scoped tool access and tuned system prompts. These agents can also be spawned in parallel into <strong>agent teams</strong> that communicate through an in-memory mailbox and coordinate work through a shared task graph with dependency tracking.</p>
+
+    <div class="callout">
+      <p><strong>Key mental model:</strong> Think of Custom Agents as a local engineering team in a box. You are the product manager — you describe what you need. The lead agent routes your request to the right specialist(s), they use real tools on your real codebase, report back, and you see the work happen in real time in your terminal.</p>
+    </div>
+
+    <h3>Problems It Solves</h3>
+    <table>
+      <thead><tr><th>Without Custom Agents</th><th>With Custom Agents</th></tr></thead>
+      <tbody>
+        <tr><td>Copy-paste code into ChatGPT — lose all file context</td><td>Agent reads your actual files and understands your full project structure</td></tr>
+        <tr><td>Manually apply AI-suggested edits to your files</td><td>Agent writes and edits files directly, showing inline diffs</td></tr>
+        <tr><td>Switch constantly between browser and terminal</td><td>Everything happens in your terminal — no context switching</td></tr>
+        <tr><td>One generic AI for everything</td><td>Specialized agents tuned for exploration, coding, review, docs, architecture</td></tr>
+        <tr><td>Run one task at a time</td><td>Spawn parallel agent teams that coordinate and share a task board</td></tr>
+        <tr><td>Vendor lock-in to a single provider</td><td>Use any OpenAI-compatible API — OpenRouter, Ollama, LM Studio, OpenAI, etc.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 2 — ARCHITECTURE               -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="architecture">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>System Architecture</h2>
+    </div>
+
+    <p>The system is organized into twelve clearly bounded modules. Each module owns a distinct responsibility, and they interact through well-defined interfaces — TypeScript types, async functions, and event hooks — rather than direct coupling. Below is the high-level architecture map.</p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 880 600" xmlns="http://www.w3.org/2000/svg" width="100%">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#5c6478"/>
+          </marker>
+          <marker id="arr-gold" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#f0b429"/>
+          </marker>
+          <marker id="arr-teal" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#1de9b6"/>
+          </marker>
+        </defs>
+
+        <!-- User Layer -->
+        <rect x="320" y="20" width="240" height="52" rx="6" fill="#171a21" stroke="#f0b429" stroke-width="1.5"/>
+        <text x="440" y="40" fill="#f0b429" font-size="10" text-anchor="middle" font-weight="600" letter-spacing="1">TERMINAL UI (Ink + React)</text>
+        <text x="440" y="58" fill="#9ba3b5" font-size="10" text-anchor="middle">screens/ · components/ · hooks/</text>
+
+        <!-- Entrypoint -->
+        <rect x="340" y="104" width="200" height="40" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="440" y="119" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">ENTRYPOINT / INIT</text>
+        <text x="440" y="133" fill="#9ba3b5" font-size="9" text-anchor="middle">entrypoints/init.ts · state/</text>
+        <line x1="440" y1="72" x2="440" y2="104" stroke="#5c6478" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- Query Loop (center) -->
+        <rect x="295" y="182" width="290" height="56" rx="6" fill="#0d1117" stroke="#f0b429" stroke-width="2"/>
+        <text x="440" y="202" fill="#f0b429" font-size="11" text-anchor="middle" font-weight="700">QUERY LOOP</text>
+        <text x="440" y="218" fill="#9ba3b5" font-size="10" text-anchor="middle">query/query.ts · streamOpenAI.ts</text>
+        <text x="440" y="230" fill="#5c6478" font-size="9" text-anchor="middle">compaction.ts · orchestration.ts</text>
+        <line x1="440" y1="144" x2="440" y2="182" stroke="#f0b429" stroke-width="1.5" marker-end="url(#arr-gold)"/>
+
+        <!-- Agent Router -->
+        <rect x="60" y="182" width="190" height="56" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="155" y="202" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">AGENT ROUTER</text>
+        <text x="155" y="218" fill="#9ba3b5" font-size="9" text-anchor="middle">agents/AgentRouter.ts</text>
+        <text x="155" y="230" fill="#5c6478" font-size="9" text-anchor="middle">builtinAgents · customAgentStore</text>
+        <line x1="295" y1="210" x2="250" y2="210" stroke="#5c6478" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- Tool Registry -->
+        <rect x="630" y="182" width="190" height="56" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="725" y="202" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">TOOL REGISTRY</text>
+        <text x="725" y="218" fill="#9ba3b5" font-size="9" text-anchor="middle">tools/registry.ts</text>
+        <text x="725" y="230" fill="#5c6478" font-size="9" text-anchor="middle">35+ tools · orchestration</text>
+        <line x1="585" y1="210" x2="630" y2="210" stroke="#5c6478" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- LLM API -->
+        <rect x="630" y="100" width="190" height="40" rx="6" fill="#0d1117" stroke="#cc5de8" stroke-width="1"/>
+        <text x="725" y="116" fill="#cc5de8" font-size="10" text-anchor="middle" font-weight="600">LLM API (OpenAI-compat)</text>
+        <text x="725" y="130" fill="#9ba3b5" font-size="9" text-anchor="middle">OpenRouter · Ollama · OpenAI</text>
+        <line x1="725" y1="182" x2="725" y2="140" stroke="#cc5de8" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="585" y1="195" x2="630" y2="120" stroke="#cc5de8" stroke-width="1" stroke-dasharray="4,3"/>
+
+        <!-- Row 3 — subsystems -->
+        <!-- Teams -->
+        <rect x="20" y="302" width="160" height="56" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="100" y="322" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">TEAMS</text>
+        <text x="100" y="338" fill="#9ba3b5" font-size="9" text-anchor="middle">TeamManager</text>
+        <text x="100" y="350" fill="#5c6478" font-size="9" text-anchor="middle">Mailbox · Promise.allSettled</text>
+
+        <!-- Task Manager -->
+        <rect x="200" y="302" width="160" height="56" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="280" y="322" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">TASK MANAGER</text>
+        <text x="280" y="338" fill="#9ba3b5" font-size="9" text-anchor="middle">TaskManager.ts</text>
+        <text x="280" y="350" fill="#5c6478" font-size="9" text-anchor="middle">deps · claim · transitions</text>
+
+        <!-- Kanban -->
+        <rect x="380" y="302" width="160" height="56" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="460" y="322" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">KANBAN BOARD</text>
+        <text x="460" y="338" fill="#9ba3b5" font-size="9" text-anchor="middle">KanbanStore.ts</text>
+        <text x="460" y="350" fill="#5c6478" font-size="9" text-anchor="middle">cards · tasks · columns</text>
+
+        <!-- Skills -->
+        <rect x="560" y="302" width="140" height="56" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="630" y="322" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">SKILLS</text>
+        <text x="630" y="338" fill="#9ba3b5" font-size="9" text-anchor="middle">builtinSkills.ts</text>
+        <text x="630" y="350" fill="#5c6478" font-size="9" text-anchor="middle">customSkillStore</text>
+
+        <!-- Models -->
+        <rect x="720" y="302" width="140" height="56" rx="6" fill="#171a21" stroke="#2e3340" stroke-width="1"/>
+        <text x="790" y="322" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">MODELS</text>
+        <text x="790" y="338" fill="#9ba3b5" font-size="9" text-anchor="middle">ModelProfileStore</text>
+        <text x="790" y="350" fill="#5c6478" font-size="9" text-anchor="middle">resolveModelConfig</text>
+
+        <!-- Arrow from query loop to subsystems -->
+        <line x1="350" y1="238" x2="100" y2="302" stroke="#5c6478" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+        <line x1="400" y1="238" x2="280" y2="302" stroke="#5c6478" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+        <line x1="440" y1="238" x2="460" y2="302" stroke="#5c6478" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+        <line x1="530" y1="238" x2="630" y2="302" stroke="#5c6478" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+        <line x1="585" y1="220" x2="790" y2="302" stroke="#5c6478" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+
+        <!-- Row 4 — persistence -->
+        <rect x="60" y="418" width="160" height="48" rx="6" fill="#0d1117" stroke="#232630" stroke-width="1"/>
+        <text x="140" y="437" fill="#5c6478" font-size="10" text-anchor="middle" font-weight="600">MEMORY</text>
+        <text x="140" y="453" fill="#5c6478" font-size="9" text-anchor="middle">MemoryStore · 3 scopes</text>
+
+        <rect x="240" y="418" width="160" height="48" rx="6" fill="#0d1117" stroke="#232630" stroke-width="1"/>
+        <text x="320" y="437" fill="#5c6478" font-size="10" text-anchor="middle" font-weight="600">PERSISTENCE</text>
+        <text x="320" y="453" fill="#5c6478" font-size="9" text-anchor="middle">SessionPersistence · transcripts</text>
+
+        <rect x="420" y="418" width="160" height="48" rx="6" fill="#0d1117" stroke="#232630" stroke-width="1"/>
+        <text x="500" y="437" fill="#5c6478" font-size="10" text-anchor="middle" font-weight="600">HOOKS</text>
+        <text x="500" y="453" fill="#5c6478" font-size="9" text-anchor="middle">HookManager · lifecycle events</text>
+
+        <rect x="600" y="418" width="160" height="48" rx="6" fill="#0d1117" stroke="#232630" stroke-width="1"/>
+        <text x="680" y="437" fill="#5c6478" font-size="10" text-anchor="middle" font-weight="600">PLUGINS</text>
+        <text x="680" y="453" fill="#5c6478" font-size="9" text-anchor="middle">tools · hooks · skills</text>
+
+        <line x1="100" y1="358" x2="140" y2="418" stroke="#232630" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="280" y1="358" x2="320" y2="418" stroke="#232630" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="460" y1="358" x2="500" y2="418" stroke="#232630" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="630" y1="358" x2="680" y2="418" stroke="#232630" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- Legend -->
+        <rect x="20" y="530" width="840" height="55" rx="6" fill="#0a0b0d" stroke="#232630" stroke-width="1"/>
+        <line x1="40" y1="553" x2="70" y2="553" stroke="#f0b429" stroke-width="2"/>
+        <text x="76" y="557" fill="#9ba3b5" font-size="10">Core path</text>
+        <line x1="160" y1="553" x2="190" y2="553" stroke="#cc5de8" stroke-width="1.5"/>
+        <text x="196" y="557" fill="#9ba3b5" font-size="10">LLM API call</text>
+        <line x1="290" y1="553" x2="320" y2="553" stroke="#5c6478" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="326" y="557" fill="#9ba3b5" font-size="10">Indirect / support dependency</text>
+        <circle cx="514" cy="553" r="5" fill="none" stroke="#f0b429" stroke-width="1.5"/>
+        <text x="525" y="557" fill="#9ba3b5" font-size="10">Central engine</text>
+        <rect x="620" y="546" width="14" height="14" rx="2" fill="#171a21" stroke="#2e3340"/>
+        <text x="640" y="557" fill="#9ba3b5" font-size="10">Support module</text>
+      </svg>
+    </div>
+
+    <h3>Module Responsibilities</h3>
+    <table>
+      <thead><tr><th>Module</th><th>Path</th><th>Responsibility</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Query Loop</strong></td><td><code>src/query/</code></td><td>The core AI loop — streams tokens from the LLM, executes tool calls, manages turns, triggers compaction</td></tr>
+        <tr><td><strong>Tool Registry</strong></td><td><code>src/tools/</code></td><td>Registers all 35+ tools, converts them to OpenAI function-call schema, dispatches execution</td></tr>
+        <tr><td><strong>Agent Router</strong></td><td><code>src/agents/</code></td><td>Resolves agent names to definitions, manages built-in and custom agent store</td></tr>
+        <tr><td><strong>Teams</strong></td><td><code>src/teams/</code></td><td>Parallel multi-agent execution, teammate state tracking, in-memory mailbox</td></tr>
+        <tr><td><strong>Task Manager</strong></td><td><code>src/tasks/</code></td><td>In-memory task graph with status transitions, dependency tracking, atomic claiming</td></tr>
+        <tr><td><strong>Kanban Board</strong></td><td><code>src/kanban/</code></td><td>File-backed persistent Kanban board; cards, sub-tasks, columns, priority, labels</td></tr>
+        <tr><td><strong>Skills</strong></td><td><code>src/skills/</code></td><td>Slash command system — built-in and user-created custom slash commands</td></tr>
+        <tr><td><strong>Memory</strong></td><td><code>src/memory/</code></td><td>File-backed key-value memory across three scopes: project, user, session</td></tr>
+        <tr><td><strong>Persistence</strong></td><td><code>src/persistence/</code></td><td>Saves and loads session transcripts (conversation history) to/from disk</td></tr>
+        <tr><td><strong>Models</strong></td><td><code>src/models/</code></td><td>Per-agent model profile store — lets different agents use different LLMs</td></tr>
+        <tr><td><strong>Hooks</strong></td><td><code>src/hooks/</code></td><td>Lifecycle event system — emit and subscribe to events like <code>query:before</code>, <code>team:start</code></td></tr>
+        <tr><td><strong>Plugins</strong></td><td><code>src/plugins/</code></td><td>Extensibility layer for loading third-party tools, hooks, and skills</td></tr>
+        <tr><td><strong>Terminal UI</strong></td><td><code>src/components/</code> · <code>src/screens/</code></td><td>All terminal rendering using React + Ink — REPL screen, streaming output, team status panel</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 3 — DATA FLOW                  -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="dataflow">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>End-to-End Data Flow</h2>
+    </div>
+
+    <p>Every interaction follows a consistent path from keyboard input to final terminal output. Understanding this path is key to understanding how all modules connect in practice.</p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 820 520" xmlns="http://www.w3.org/2000/svg" width="100%">
+        <defs>
+          <marker id="a2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#f0b429"/>
+          </marker>
+          <marker id="a3" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#1de9b6"/>
+          </marker>
+          <marker id="a4" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#4dabf7"/>
+          </marker>
+        </defs>
+
+        <!-- Step boxes, left column going down -->
+        <!-- 1: User Input -->
+        <rect x="20" y="30" width="180" height="50" rx="6" fill="#171a21" stroke="#f0b429" stroke-width="1.5"/>
+        <text x="30" y="50" fill="#f0b429" font-size="10" font-weight="700">① USER INPUT</text>
+        <text x="30" y="65" fill="#9ba3b5" font-size="9">Keyboard → Ink REPL screen</text>
+        <text x="30" y="75" fill="#5c6478" font-size="9">screens/ · /slash detection</text>
+
+        <line x1="110" y1="80" x2="110" y2="105" stroke="#f0b429" stroke-width="1.5" marker-end="url(#a2)"/>
+
+        <!-- 2: Slash / Agent Router -->
+        <rect x="20" y="105" width="180" height="50" rx="6" fill="#171a21" stroke="#2e3340"/>
+        <text x="30" y="125" fill="#e8eaf0" font-size="10" font-weight="700">② SLASH / SKILL CHECK</text>
+        <text x="30" y="140" fill="#9ba3b5" font-size="9">Skills router matches /command</text>
+        <text x="30" y="150" fill="#5c6478" font-size="9">Expands promptTemplate → user msg</text>
+
+        <line x1="110" y1="155" x2="110" y2="180" stroke="#f0b429" stroke-width="1.5" marker-end="url(#a2)"/>
+
+        <!-- 3: Agent resolve -->
+        <rect x="20" y="180" width="180" height="50" rx="6" fill="#171a21" stroke="#2e3340"/>
+        <text x="30" y="200" fill="#e8eaf0" font-size="10" font-weight="700">③ AGENT RESOLUTION</text>
+        <text x="30" y="215" fill="#9ba3b5" font-size="9">AgentRouter resolves definition</text>
+        <text x="30" y="225" fill="#5c6478" font-size="9">builtin or custom · system prompt</text>
+
+        <line x1="110" y1="230" x2="110" y2="255" stroke="#f0b429" stroke-width="1.5" marker-end="url(#a2)"/>
+
+        <!-- 4: Query Loop -->
+        <rect x="20" y="255" width="180" height="64" rx="6" fill="#0d1117" stroke="#f0b429" stroke-width="2"/>
+        <text x="30" y="275" fill="#f0b429" font-size="10" font-weight="700">④ QUERY LOOP ★</text>
+        <text x="30" y="289" fill="#9ba3b5" font-size="9">Compaction check → stream LLM</text>
+        <text x="30" y="301" fill="#9ba3b5" font-size="9">Parse tool_calls → execute tools</text>
+        <text x="30" y="313" fill="#5c6478" font-size="9">Append results → loop / finish</text>
+
+        <line x1="110" y1="319" x2="110" y2="344" stroke="#f0b429" stroke-width="1.5" marker-end="url(#a2)"/>
+
+        <!-- 5: Render Output -->
+        <rect x="20" y="344" width="180" height="50" rx="6" fill="#171a21" stroke="#2e3340"/>
+        <text x="30" y="364" fill="#e8eaf0" font-size="10" font-weight="700">⑤ RENDER OUTPUT</text>
+        <text x="30" y="379" fill="#9ba3b5" font-size="9">Ink components stream to terminal</text>
+        <text x="30" y="389" fill="#5c6478" font-size="9">Diffs · tool names · final answer</text>
+
+        <!-- RIGHT COLUMN — parallel details -->
+        <!-- LLM call detail -->
+        <rect x="270" y="255" width="210" height="64" rx="6" fill="#0d1117" stroke="#cc5de8" stroke-width="1"/>
+        <text x="280" y="275" fill="#cc5de8" font-size="10" font-weight="600">LLM STREAMING</text>
+        <text x="280" y="290" fill="#9ba3b5" font-size="9">streamOpenAI → POST /v1/chat/completions</text>
+        <text x="280" y="304" fill="#9ba3b5" font-size="9">SSE chunks → onToken callback</text>
+        <text x="280" y="316" fill="#5c6478" font-size="9">Accumulates assistant message</text>
+        <line x1="200" y1="287" x2="270" y2="287" stroke="#cc5de8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#a4)"/>
+
+        <!-- Tool execution -->
+        <rect x="270" y="340" width="210" height="80" rx="6" fill="#171a21" stroke="#1de9b6" stroke-width="1"/>
+        <text x="280" y="360" fill="#1de9b6" font-size="10" font-weight="600">TOOL EXECUTION</text>
+        <text x="280" y="375" fill="#9ba3b5" font-size="9">orchestration.ts: fan-out per tool_call</text>
+        <text x="280" y="388" fill="#9ba3b5" font-size="9">shell / file_read / grep / web_search…</text>
+        <text x="280" y="401" fill="#9ba3b5" font-size="9">Returns ToolResultMessage</text>
+        <text x="280" y="413" fill="#5c6478" font-size="9">Appended to message array → next turn</text>
+        <line x1="200" y1="310" x2="240" y2="380" stroke="#1de9b6" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#a3)"/>
+
+        <!-- Compaction -->
+        <rect x="500" y="255" width="200" height="64" rx="6" fill="#0d1117" stroke="#2e3340"/>
+        <text x="510" y="275" fill="#e8eaf0" font-size="10" font-weight="600">CONTEXT COMPACTION</text>
+        <text x="510" y="290" fill="#9ba3b5" font-size="9">Estimate tokens each turn</text>
+        <text x="510" y="303" fill="#9ba3b5" font-size="9">≥80% budget → compact pipeline</text>
+        <text x="510" y="316" fill="#5c6478" font-size="9">Truncate → Collapse → Summarize</text>
+        <line x1="480" y1="280" x2="500" y2="280" stroke="#5c6478" stroke-width="1" marker-end="url(#a2)"/>
+
+        <!-- Memory inject -->
+        <rect x="500" y="340" width="200" height="64" rx="6" fill="#0d1117" stroke="#2e3340"/>
+        <text x="510" y="360" fill="#e8eaf0" font-size="10" font-weight="600">MEMORY INJECTION</text>
+        <text x="510" y="376" fill="#9ba3b5" font-size="9">MemoryStore.buildContext()</text>
+        <text x="510" y="389" fill="#9ba3b5" font-size="9">Appended to system prompt</text>
+        <text x="510" y="402" fill="#5c6478" font-size="9">project + user + session scopes</text>
+        <line x1="480" y1="360" x2="500" y2="360" stroke="#5c6478" stroke-width="1" marker-end="url(#a2)"/>
+
+        <!-- Persistence -->
+        <rect x="500" y="425" width="200" height="50" rx="6" fill="#0d1117" stroke="#2e3340"/>
+        <text x="510" y="445" fill="#e8eaf0" font-size="10" font-weight="600">SESSION PERSISTENCE</text>
+        <text x="510" y="461" fill="#9ba3b5" font-size="9">SessionPersistence → JSON on disk</text>
+        <text x="510" y="472" fill="#5c6478" font-size="9">Reload between sessions</text>
+
+        <!-- Hook events (right) -->
+        <rect x="270" y="440" width="210" height="50" rx="6" fill="#0d1117" stroke="#2e3340"/>
+        <text x="280" y="458" fill="#e8eaf0" font-size="10" font-weight="600">HOOK EVENTS</text>
+        <text x="280" y="472" fill="#9ba3b5" font-size="9">query:before/after · message:assistant</text>
+        <text x="280" y="483" fill="#5c6478" font-size="9">team:start/complete · tool events</text>
+      </svg>
+    </div>
+
+    <div class="flow">
+      <div class="flow-step"><span class="num">1</span>Keyboard input parsed by Ink REPL</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="num">2</span>Slash command or plain query</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="num">3</span>Agent + tools resolved</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="num">4</span>Query loop runs N turns</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="num">5</span>Terminal renders answer</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 4 — QUERY LOOP                 -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="query-loop">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2>The Query Loop — Core Engine</h2>
+    </div>
+
+    <p>The query loop (<code>src/query/query.ts</code>) is the central engine of the entire system. Every agent, every team member, and every slash command ultimately runs through <code>runQueryLoop()</code>. It implements the <strong>agentic AI loop</strong>: stream tokens from an LLM, detect tool calls, execute them, feed results back, and repeat until the model produces a final answer or the turn limit is reached.</p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" width="100%">
+        <defs>
+          <marker id="qa" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#f0b429"/>
+          </marker>
+          <marker id="qa2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#1de9b6"/>
+          </marker>
+          <marker id="qa3" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#ff6b6b"/>
+          </marker>
+        </defs>
+
+        <!-- Start -->
+        <ellipse cx="350" cy="28" rx="80" ry="20" fill="#171a21" stroke="#f0b429" stroke-width="1.5"/>
+        <text x="350" y="32" fill="#f0b429" font-size="10" text-anchor="middle" font-weight="600">runQueryLoop()</text>
+        <line x1="350" y1="48" x2="350" y2="72" stroke="#f0b429" stroke-width="1.5" marker-end="url(#qa)"/>
+
+        <!-- Build system prompt + check compaction -->
+        <rect x="220" y="72" width="260" height="44" rx="6" fill="#171a21" stroke="#2e3340"/>
+        <text x="350" y="90" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">Build system prompt + inject memory</text>
+        <text x="350" y="106" fill="#9ba3b5" font-size="9" text-anchor="middle">Prepend system message · emit query:before hook</text>
+        <line x1="350" y1="116" x2="350" y2="140" stroke="#f0b429" stroke-width="1.5" marker-end="url(#qa)"/>
+
+        <!-- WHILE LOOP -->
+        <rect x="170" y="140" width="360" height="24" rx="4" fill="#0d1117" stroke="#f0b429" stroke-width="1"/>
+        <text x="350" y="157" fill="#f0b429" font-size="10" text-anchor="middle" font-weight="600">WHILE turnCount &lt; maxTurns AND NOT aborted</text>
+        <line x1="350" y1="164" x2="350" y2="185" stroke="#f0b429" stroke-width="1.5" marker-end="url(#qa)"/>
+
+        <!-- Compaction check -->
+        <rect x="230" y="185" width="240" height="40" rx="6" fill="#171a21" stroke="#2e3340"/>
+        <text x="350" y="202" fill="#e8eaf0" font-size="10" text-anchor="middle" font-weight="600">compactMessages()</text>
+        <text x="350" y="217" fill="#9ba3b5" font-size="9" text-anchor="middle">estimate tokens → if ≥80% budget, compact</text>
+        <line x1="350" y1="225" x2="350" y2="248" stroke="#f0b429" stroke-width="1.5" marker-end="url(#qa)"/>
+
+        <!-- streamChatCompletion -->
+        <rect x="210" y="248" width="280" height="44" rx="6" fill="#0d1117" stroke="#cc5de8" stroke-width="1.5"/>
+        <text x="350" y="267" fill="#cc5de8" font-size="10" text-anchor="middle" font-weight="600">streamChatCompletion()</text>
+        <text x="350" y="283" fill="#9ba3b5" font-size="9" text-anchor="middle">POST /v1/chat/completions → SSE stream → onToken()</text>
+        <line x1="350" y1="292" x2="350" y2="316" stroke="#f0b429" stroke-width="1.5" marker-end="url(#qa)"/>
+
+        <!-- Decision: tool calls? -->
+        <polygon points="350,316 430,346 350,376 270,346" fill="#0d1117" stroke="#f0b429" stroke-width="1.5"/>
+        <text x="350" y="342" fill="#f0b429" font-size="10" text-anchor="middle" font-weight="600">tool_calls?</text>
+        <text x="350" y="356" fill="#9ba3b5" font-size="9" text-anchor="middle">in response</text>
+
+        <!-- YES branch: execute tools -->
+        <line x1="430" y1="346" x2="580" y2="346" stroke="#1de9b6" stroke-width="1.5" marker-end="url(#qa2)"/>
+        <text x="460" y="340" fill="#1de9b6" font-size="9">YES</text>
+        <rect x="580" y="316" width="100" height="60" rx="6" fill="#171a21" stroke="#1de9b6" stroke-width="1"/>
+        <text x="630" y="340" fill="#1de9b6" font-size="9" text-anchor="middle" font-weight="600">executeToolCalls()</text>
+        <text x="630" y="354" fill="#9ba3b5" font-size="8" text-anchor="middle">fan-out per call</text>
+        <text x="630" y="366" fill="#9ba3b5" font-size="8" text-anchor="middle">append results</text>
+        <!-- Loop back up -->
+        <line x1="680" y1="346" x2="700" y2="346" stroke="#1de9b6" stroke-width="1"/>
+        <line x1="700" y1="346" x2="700" y2="152" stroke="#1de9b6" stroke-width="1"/>
+        <line x1="700" y1="152" x2="530" y2="152" stroke="#1de9b6" stroke-width="1" marker-end="url(#qa2)"/>
+        <text x="712" y="260" fill="#1de9b6" font-size="9" transform="rotate(90, 712, 260)">loop</text>
+
+        <!-- NO branch: done -->
+        <line x1="350" y1="376" x2="350" y2="400" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#qa3)"/>
+        <text x="360" y="390" fill="#ff6b6b" font-size="9">NO → final answer</text>
+        <ellipse cx="350" cy="408" rx="80" ry="18" fill="#171a21" stroke="#ff6b6b" stroke-width="1.5"/>
+        <text x="350" y="412" fill="#ff6b6b" font-size="10" text-anchor="middle" font-weight="600">return QueryResult</text>
+      </svg>
+    </div>
+
+    <h3>Key Implementation Details</h3>
+
+    <p>The loop receives an <code>abortSignal</code> so any turn can be cancelled — pressing Ctrl+C sends the abort, and the loop exits cleanly at the next check point. The <code>setAppState</code> function wires streaming tokens directly to React state, so every token appears in the terminal the moment it arrives from the API.</p>
+
+    <p>Tool calls are executed through <code>executeToolCalls()</code> in <code>src/tools/orchestration.ts</code>. Multiple tool calls in a single assistant message are dispatched in a loop, with their results all appended before the next LLM turn begins. This means the model sees all tool results at once on the next turn, which is the most common multi-tool pattern.</p>
+
+    <div class="callout blue">
+      <p><strong>Max turns guard:</strong> The loop has a hard ceiling defined by <code>config.maxTurns</code> (default: 20). Individual agents override this — Explorer caps at 8 turns, Coder at 15. This prevents runaway loops burning tokens on unresolvable tasks.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 5 — STREAMING + COMPACTION    -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="streaming">
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <h2>Streaming & Context Compaction</h2>
+    </div>
+
+    <h3>Streaming</h3>
+    <p>The <code>streamChatCompletion()</code> function in <code>src/query/streamOpenAI.ts</code> connects to any OpenAI-compatible endpoint using <strong>Server-Sent Events (SSE)</strong>. Each chunk that arrives is passed to an <code>onToken</code> callback, which updates React state, causing Ink to re-render the terminal output in real time. The full assistant message is accumulated from all chunks and returned when the stream ends.</p>
+
+    <h3>Context Compaction</h3>
+    <p>LLMs have finite context windows. Custom Agents tracks a configurable <strong>context budget</strong> (default: 120,000 tokens). Before each LLM turn, it estimates the total tokens in the message array using a conservative approximation (~3.5 chars per token). When usage reaches <strong>80% of the budget</strong>, the compaction pipeline triggers automatically.</p>
+
+    <p>Compaction applies three strategies in order, stopping as soon as the message array fits under budget:</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#f0b429"></span>Strategy 1: Truncate</div>
+        <p style="font-size:12px;margin:0">Shorten long tool result contents in older messages. Each tool result is capped to 200 characters with a truncation marker. Fast and lossless for tool call identity.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#4dabf7"></span>Strategy 2: Collapse</div>
+        <p style="font-size:12px;margin:0">Replace old assistant-message + tool-result pairs with a single compact system note summarizing what happened. Preserves the fact that a tool was called without keeping its full output.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#ff6b6b"></span>Strategy 3: Summarize</div>
+        <p style="font-size:12px;margin:0">Drop the oldest non-system messages entirely, replaced by a single <em>[Earlier conversation compacted]</em> marker. A last resort that guarantees the budget is met.</p>
+      </div>
+    </div>
+
+    <p>Users can also trigger compaction manually at any time with the <code>/compact</code> slash command, which forces the pipeline to run regardless of the current budget level.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 6 — TOOLS                      -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="tools">
+    <div class="section-header">
+      <span class="section-number">06</span>
+      <h2>Tool Registry — 35+ Built-in Tools</h2>
+    </div>
+
+    <p>Every capability an agent has comes from tools. Tools are TypeScript classes that extend a base <code>Tool</code> interface, declare a JSON Schema for their inputs, and implement an <code>execute()</code> method. The <strong>Tool Registry</strong> (<code>src/tools/registry.ts</code>) collects all registered tools, converts them to OpenAI function-call format, and dispatches execution by name.</p>
+
+    <table>
+      <thead><tr><th>Category</th><th>Tools</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-gold">File Operations</span></td>
+          <td><code>file_read</code> · <code>file_write</code> · <code>file_edit</code></td>
+          <td>Read file contents, write new files, apply targeted text edits with inline diff display</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue">Search</span></td>
+          <td><code>grep</code> · <code>glob</code> · <code>tool_search</code></td>
+          <td>Regex search through file contents, file pattern matching, discover available tool capabilities</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">Shell</span></td>
+          <td><code>shell</code></td>
+          <td>Execute any shell command — run tests, git operations, builds, arbitrary scripts</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-purple">Web</span></td>
+          <td><code>web_search</code> · <code>web_fetch</code></td>
+          <td>Search the web, fetch URLs — look up docs, APIs, library references</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-teal">Task Management</span></td>
+          <td><code>task_create</code> · <code>task_list</code> · <code>task_get</code> · <code>task_update</code> · <code>task_stop</code> · <code>task_output</code></td>
+          <td>Create and track background tasks with status, dependencies, and captured output</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-gold">Agent Orchestration</span></td>
+          <td><code>agent_spawn</code> · <code>agent_create</code></td>
+          <td>Spawn a sub-agent with a task message; create and persist custom agent definitions</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue">Team Coordination</span></td>
+          <td><code>team_create</code> · <code>team_status</code> · <code>team_message</code> · <code>team_check_messages</code> · <code>team_task_claim</code></td>
+          <td>Form agent teams, broadcast/receive mailbox messages, atomically claim tasks</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-teal">Kanban Board</span></td>
+          <td><code>kanban</code> (multi-action)</td>
+          <td>Add/move/update/archive cards; add/toggle/remove sub-tasks; view full board state</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-purple">Code Quality</span></td>
+          <td><code>lsp_diagnostics</code> · <code>notebook_edit</code> · <code>repl</code></td>
+          <td>Check TypeScript/language server diagnostics, edit Jupyter notebooks, execute REPL code</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">Skills &amp; Mode</span></td>
+          <td><code>skill_create</code> · <code>skill_list</code> · <code>enter_plan_mode</code> · <code>exit_plan_mode</code> · <code>brief_toggle</code></td>
+          <td>Persist custom slash commands, control plan mode, toggle compact output</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-gold">Misc</span></td>
+          <td><code>ask_user_question</code> · <code>sleep</code> · <code>todo_write</code> · <code>config</code></td>
+          <td>Interactive prompts, delays, simple todo tracking, configuration inspection</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout teal">
+      <p><strong>Scoped registries:</strong> Agents don't receive all tools — only the subset declared in their <code>allowedTools</code> list. This is enforced at registry build time in <code>buildTeammateRegistry()</code>, so a Reviewer agent cannot accidentally call <code>file_write</code> even if the user asks it to.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 7 — BUILTIN AGENTS             -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="builtin-agents">
+    <div class="section-header">
+      <span class="section-number">07</span>
+      <h2>Five Built-in Agents</h2>
+    </div>
+
+    <p>Each agent is an <strong>AgentDefinition</strong> object — a data structure declaring its name, system prompt, allowed tools, max turns, and optional model profile. The <code>AgentRouter</code> resolves agent names to these definitions at runtime. Agents are <em>not</em> classes; they are pure configuration that parameterizes the shared query loop.</p>
+
+    <div class="grid">
+      <div class="agent-card explorer">
+        <div class="agent-name" style="color:#1de9b6">🔍 Explorer</div>
+        <div class="agent-desc">Quick codebase exploration and search. Reads files and searches with grep/glob but never modifies them. Best for answering "where is X?" or "how does Y work?" questions.</div>
+        <div class="agent-tools">
+          <span class="tag tag-teal">grep</span><span class="tag tag-teal">glob</span><span class="tag tag-teal">file_read</span><span class="tag tag-teal">shell</span><span class="tag tag-teal">web_search</span><span class="tag tag-teal">web_fetch</span><span class="tag tag-teal">tool_search</span><span class="tag tag-teal">kanban</span>
+        </div>
+        <div class="agent-stat"><span>⏱ 8 max turns</span><span>📖 read-only</span></div>
+      </div>
+
+      <div class="agent-card coder">
+        <div class="agent-name" style="color:#f0b429">⚡ Coder</div>
+        <div class="agent-desc">Code generation and editing. Full read/write access. Follows a structured workflow: read → understand → edit → verify with LSP and tests. The most capable and trusted agent.</div>
+        <div class="agent-tools">
+          <span class="tag tag-gold">grep</span><span class="tag tag-gold">glob</span><span class="tag tag-gold">file_read</span><span class="tag tag-gold">file_write</span><span class="tag tag-gold">file_edit</span><span class="tag tag-gold">shell</span><span class="tag tag-gold">lsp</span><span class="tag tag-gold">repl</span><span class="tag tag-gold">web_*</span><span class="tag tag-gold">kanban</span>
+        </div>
+        <div class="agent-stat"><span>⏱ 15 max turns</span><span>✏️ read + write</span></div>
+      </div>
+
+      <div class="agent-card reviewer">
+        <div class="agent-name" style="color:#ff6b6b">🔎 Reviewer</div>
+        <div class="agent-desc">Code review and analysis. Examines code for bugs, security issues, performance, and style. Uses LSP diagnostics to surface type errors. Returns specific, actionable feedback. Read-only.</div>
+        <div class="agent-tools">
+          <span class="tag tag-red">grep</span><span class="tag tag-red">glob</span><span class="tag tag-red">file_read</span><span class="tag tag-red">shell</span><span class="tag tag-red">lsp_diagnostics</span><span class="tag tag-red">web_search</span><span class="tag tag-red">kanban</span>
+        </div>
+        <div class="agent-stat"><span>⏱ 10 max turns</span><span>📖 read-only</span></div>
+      </div>
+
+      <div class="agent-card documenter">
+        <div class="agent-name" style="color:#4dabf7">📝 Documenter</div>
+        <div class="agent-desc">Technical documentation generation. Writes READMEs, API docs, architecture overviews, inline comments, and changelogs. Can write files. Reads the project structure to produce accurate docs.</div>
+        <div class="agent-tools">
+          <span class="tag tag-blue">grep</span><span class="tag tag-blue">glob</span><span class="tag tag-blue">file_read</span><span class="tag tag-blue">file_write</span><span class="tag tag-blue">file_edit</span><span class="tag tag-blue">shell</span><span class="tag tag-blue">web_*</span><span class="tag tag-blue">kanban</span>
+        </div>
+        <div class="agent-stat"><span>⏱ 12 max turns</span><span>✏️ read + write</span></div>
+      </div>
+
+      <div class="agent-card architect">
+        <div class="agent-name" style="color:#cc5de8">🏗️ Architect</div>
+        <div class="agent-desc">Architecture analysis and design. Maps module boundaries, data flows, dependency graphs, and extension points. Produces analysis and plans — never modifies files. Great for design decisions.</div>
+        <div class="agent-tools">
+          <span class="tag tag-purple">grep</span><span class="tag tag-purple">glob</span><span class="tag tag-purple">file_read</span><span class="tag tag-purple">shell</span><span class="tag tag-purple">lsp</span><span class="tag tag-purple">web_*</span><span class="tag tag-purple">tool_search</span><span class="tag tag-purple">kanban</span>
+        </div>
+        <div class="agent-stat"><span>⏱ 12 max turns</span><span>📖 read-only</span></div>
+      </div>
+    </div>
+
+    <h3>How to Invoke Agents</h3>
+    <p>Agents are invoked through the <code>agent_spawn</code> tool (from within other agents or the lead), or directly via the terminal. The system detects agent-intent keywords in your message. You can also specify an agent explicitly:</p>
+
+    <pre><span class="comment"># Invoke specific agent for a task</span>
+&gt; As the coder agent, implement a rate limiter for the API endpoint
+
+<span class="comment"># Spawn a sub-agent from the lead agent (tool call)</span>
+<span class="fn">agent_spawn</span>({ <span class="str">agent</span>: <span class="str">"explorer"</span>, <span class="str">task</span>: <span class="str">"Map all imports in src/query/"</span> })</pre>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 8 — CUSTOM AGENTS              -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="custom-agents">
+    <div class="section-header">
+      <span class="section-number">08</span>
+      <h2>Custom Agents</h2>
+    </div>
+
+    <p>Beyond the five built-in agents, you can define your own agents with arbitrary tool sets and system prompts. Custom agents are created through the <code>/agent</code> slash command and persisted to disk via <code>customAgentStore.ts</code> — they survive across sessions and become available immediately after creation.</p>
+
+    <p>When you type <code>/agent create a test runner agent that runs Jest and summarizes failures</code>, the system uses the <code>AgentSkill</code>'s prompt template to instruct the LLM to generate a complete <code>AgentDefinition</code> object and call <code>agent_create</code> with it. The definition is saved to <code>~/.custom-agents/agents.json</code>.</p>
+
+    <pre><span class="comment">// Stored structure of a custom agent (agents.json)</span>
+{
+  <span class="str">"name"</span>: <span class="str">"test-runner"</span>,
+  <span class="str">"description"</span>: <span class="str">"Runs Jest tests and summarizes failures"</span>,
+  <span class="str">"systemPrompt"</span>: <span class="str">"You are a test execution agent..."</span>,
+  <span class="str">"allowedTools"</span>: [<span class="str">"shell"</span>, <span class="str">"file_read"</span>, <span class="str">"grep"</span>],
+  <span class="str">"maxTurns"</span>: <span class="num">8</span>,
+  <span class="str">"mode"</span>: <span class="str">"sync"</span>,
+  <span class="str">"modelProfile"</span>: <span class="str">"fast"</span>   <span class="comment">// optional: routes to a specific model</span>
+}</pre>
+
+    <p>Custom agents optionally reference a <strong>model profile</strong> by name. This lets you route lightweight agents to cheaper/faster models (like GPT-4o Mini) while keeping complex agents on powerful models (like Claude Opus or GPT-4o).</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 9 — AGENT TEAMS                -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="teams">
+    <div class="section-header">
+      <span class="section-number">09</span>
+      <h2>Agent Teams — Parallel Multi-Agent Execution</h2>
+    </div>
+
+    <p>The most powerful feature of Custom Agents is the ability to form <strong>agent teams</strong> — groups of specialized agents that work in parallel, each on their own task, communicating through a shared mailbox and coordinating via a task graph with dependency tracking.</p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" width="100%">
+        <defs>
+          <marker id="ta" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#f0b429"/>
+          </marker>
+          <marker id="ta2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#1de9b6"/>
+          </marker>
+        </defs>
+
+        <!-- Lead agent -->
+        <rect x="310" y="20" width="180" height="52" rx="6" fill="#0d1117" stroke="#f0b429" stroke-width="2"/>
+        <text x="400" y="42" fill="#f0b429" font-size="11" text-anchor="middle" font-weight="700">LEAD AGENT</text>
+        <text x="400" y="58" fill="#9ba3b5" font-size="9" text-anchor="middle">team_create → TeamManager.run()</text>
+
+        <!-- fan out arrows -->
+        <line x1="340" y1="72" x2="130" y2="140" stroke="#f0b429" stroke-width="1.5" marker-end="url(#ta)"/>
+        <line x1="400" y1="72" x2="400" y2="140" stroke="#f0b429" stroke-width="1.5" marker-end="url(#ta)"/>
+        <line x1="460" y1="72" x2="670" y2="140" stroke="#f0b429" stroke-width="1.5" marker-end="url(#ta)"/>
+
+        <text x="200" y="110" fill="#5c6478" font-size="9">Promise.allSettled()</text>
+        <text x="380" y="110" fill="#5c6478" font-size="9">concurrent</text>
+
+        <!-- Teammate 1 -->
+        <rect x="30" y="140" width="200" height="100" rx="6" fill="#171a21" stroke="#1de9b6" stroke-width="1"/>
+        <text x="130" y="160" fill="#1de9b6" font-size="10" text-anchor="middle" font-weight="600">🔍 Explorer Teammate</text>
+        <text x="130" y="176" fill="#9ba3b5" font-size="9" text-anchor="middle">scoped registry: read-only</text>
+        <text x="130" y="192" fill="#9ba3b5" font-size="9" text-anchor="middle">isolated AppState store</text>
+        <text x="130" y="208" fill="#9ba3b5" font-size="9" text-anchor="middle">team_message · team_check_messages</text>
+        <text x="130" y="224" fill="#5c6478" font-size="9" text-anchor="middle">team_task_claim</text>
+
+        <!-- Teammate 2 -->
+        <rect x="300" y="140" width="200" height="100" rx="6" fill="#171a21" stroke="#f0b429" stroke-width="1"/>
+        <text x="400" y="160" fill="#f0b429" font-size="10" text-anchor="middle" font-weight="600">⚡ Coder Teammate</text>
+        <text x="400" y="176" fill="#9ba3b5" font-size="9" text-anchor="middle">scoped registry: read + write</text>
+        <text x="400" y="192" fill="#9ba3b5" font-size="9" text-anchor="middle">isolated AppState store</text>
+        <text x="400" y="208" fill="#9ba3b5" font-size="9" text-anchor="middle">team_message · team_check_messages</text>
+        <text x="400" y="224" fill="#5c6478" font-size="9" text-anchor="middle">team_task_claim</text>
+
+        <!-- Teammate 3 -->
+        <rect x="570" y="140" width="200" height="100" rx="6" fill="#171a21" stroke="#ff6b6b" stroke-width="1"/>
+        <text x="670" y="160" fill="#ff6b6b" font-size="10" text-anchor="middle" font-weight="600">🔎 Reviewer Teammate</text>
+        <text x="670" y="176" fill="#9ba3b5" font-size="9" text-anchor="middle">scoped registry: read-only</text>
+        <text x="670" y="192" fill="#9ba3b5" font-size="9" text-anchor="middle">isolated AppState store</text>
+        <text x="670" y="208" fill="#9ba3b5" font-size="9" text-anchor="middle">team_message · team_check_messages</text>
+        <text x="670" y="224" fill="#5c6478" font-size="9" text-anchor="middle">team_task_claim</text>
+
+        <!-- Mailbox in center -->
+        <rect x="290" y="270" width="220" height="50" rx="6" fill="#0d1117" stroke="#4dabf7" stroke-width="1.5"/>
+        <text x="400" y="291" fill="#4dabf7" font-size="10" text-anchor="middle" font-weight="600">IN-MEMORY MAILBOX</text>
+        <text x="400" y="307" fill="#9ba3b5" font-size="9" text-anchor="middle">send · broadcast · peek · receive</text>
+
+        <!-- Mailbox connections -->
+        <line x1="130" y1="240" x2="310" y2="280" stroke="#4dabf7" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ta2)"/>
+        <line x1="400" y1="240" x2="400" y2="270" stroke="#4dabf7" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ta2)"/>
+        <line x1="670" y1="240" x2="490" y2="280" stroke="#4dabf7" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ta2)"/>
+
+        <!-- Task manager -->
+        <rect x="0" y="340" width="200" height="36" rx="4" fill="#0d1117" stroke="#232630"/>
+        <text x="100" y="354" fill="#5c6478" font-size="9" text-anchor="middle">TaskManager: root + child tasks</text>
+        <text x="100" y="368" fill="#5c6478" font-size="9" text-anchor="middle">blockedBy/blocks · atomic claim</text>
+
+        <!-- Collect results -->
+        <rect x="540" y="340" width="240" height="36" rx="4" fill="#0d1117" stroke="#232630"/>
+        <text x="660" y="354" fill="#5c6478" font-size="9" text-anchor="middle">Promise.allSettled → collect outputs</text>
+        <text x="660" y="368" fill="#5c6478" font-size="9" text-anchor="middle">Lead synthesizes → final response</text>
+      </svg>
+    </div>
+
+    <h3>How Teams Work Internally</h3>
+
+    <p>When the lead agent calls <code>team_create</code>, the <code>TeamManager</code> creates a <code>TeamState</code> record with a shared <code>Mailbox</code> instance, a root task for the team, and one child task per teammate. Each teammate gets its own <strong>isolated <code>AppState</code> store</strong> — so streaming state, tool call tracking, and turn counts are completely independent per agent.</p>
+
+    <p>The actual concurrent execution is a single <code>Promise.allSettled()</code> call that runs all teammates simultaneously. Because Bun is single-threaded with an async event loop, there are no race conditions on the shared mailbox — all async operations interleave safely without locks.</p>
+
+    <h3>Task Claiming with Dependencies</h3>
+    <p>The <code>TaskManager</code> supports dependency chains: task A can declare that it <code>blockedBy</code> task B. When B completes, B is automatically removed from A's <code>blockedBy</code> array, making A claimable. The <code>claim()</code> method is atomic — it checks status, claimedBy, and blockedBy in a single synchronous operation, preventing two teammates from claiming the same task.</p>
+
+    <pre><span class="comment">// Example: spawn a team from a terminal prompt</span>
+&gt; Create a team with an explorer and a coder to refactor src/query/
+
+<span class="comment">// Internally, the lead agent calls:</span>
+<span class="fn">team_create</span>({
+  <span class="str">name</span>: <span class="str">"query-refactor"</span>,
+  <span class="str">teammates</span>: [
+    { <span class="str">agent</span>: <span class="str">"explorer"</span>, <span class="str">task</span>: <span class="str">"Map the query module structure"</span> },
+    { <span class="str">agent</span>: <span class="str">"coder"</span>, <span class="str">task</span>: <span class="str">"Refactor compaction.ts to reduce coupling"</span> }
+  ]
+})</pre>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 10 — MAILBOX                   -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="mailbox">
+    <div class="section-header">
+      <span class="section-number">10</span>
+      <h2>Inter-Agent Mailbox</h2>
+    </div>
+
+    <p>The <code>Mailbox</code> class (<code>src/teams/Mailbox.ts</code>) provides <strong>in-process pub/sub messaging</strong> between teammates in a team. It is the only shared mutable object between concurrent teammates — and since Bun's event loop is single-threaded, all operations are naturally race-condition-free.</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#4dabf7"></span><code>send(from, to, content)</code></div>
+        <p style="font-size:12px;margin:0">Send a direct message to a specific teammate by ID. The message is stored and the target's subscribers are notified. Sets <code>read: false</code> initially.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#4dabf7"></span><code>send(from, "all", content)</code></div>
+        <p style="font-size:12px;margin:0">Broadcast to all other teammates. All subscribers except the sender receive the notification. Useful for status updates — "I've finished mapping the module."</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#4dabf7"></span><code>receive(agentId)</code></div>
+        <p style="font-size:12px;margin:0">Fetch all unread messages addressed to this agent (direct or broadcast), marking them as read. Teammates call this via the <code>team_check_messages</code> tool.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#4dabf7"></span><code>peek(agentId)</code></div>
+        <p style="font-size:12px;margin:0">Read unread messages without marking them as read. Useful for checking if there are pending messages before deciding whether to call <code>receive</code>.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Message structure:</strong> Each message has an <code>id</code>, <code>from</code>, <code>to</code> (or <code>"all"</code>), <code>content</code> string, <code>timestamp</code>, and <code>read</code> boolean. The full <code>history()</code> is always accessible for debugging or audit purposes.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 11 — SKILLS                    -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="skills">
+    <div class="section-header">
+      <span class="section-number">11</span>
+      <h2>Slash Commands (Skills System)</h2>
+    </div>
+
+    <p>Slash commands are implemented as <strong>Skills</strong> — lightweight configuration objects that define a <code>/name</code>, a description, and either a <code>promptTemplate</code> (type: "prompt") or a direct tool invocation (type: "tool"). When you type <code>/explain my function</code>, the skills router matches the command, expands the <code>promptTemplate</code> with your input substituted for <code>{"{{input}}"}</code>, and feeds the result to the query loop as if you had typed that expanded prompt manually.</p>
+
+    <table>
+      <thead><tr><th>Command</th><th>Type</th><th>What It Does</th></tr></thead>
+      <tbody>
+        <tr><td><code>/explain</code></td><td>prompt</td><td>Generates a detailed explanation of the provided code — patterns, behavior, edge cases</td></tr>
+        <tr><td><code>/commit</code></td><td>prompt</td><td>Runs <code>git diff --cached</code>, writes a conventional commit message for staged changes</td></tr>
+        <tr><td><code>/status</code></td><td>prompt</td><td>Runs <code>git status</code> and recent log, gives a concise project status summary</td></tr>
+        <tr><td><code>/find</code></td><td>prompt</td><td>Uses grep + glob to search the codebase for files or code matching the query</td></tr>
+        <tr><td><code>/diff</code></td><td>tool</td><td>Shows an inline side-by-side diff of all uncommitted changes</td></tr>
+        <tr><td><code>/compact</code></td><td>tool</td><td>Forces context compaction immediately, freeing up token budget</td></tr>
+        <tr><td><code>/plan</code></td><td>prompt</td><td>Enters plan mode — agent explores and plans before making any edits</td></tr>
+        <tr><td><code>/brief</code></td><td>prompt</td><td>Toggles brief/compact output mode for more concise terminal responses</td></tr>
+        <tr><td><code>/agent</code></td><td>prompt</td><td>Creates a custom agent from a natural language description, persists it</td></tr>
+        <tr><td><code>/skill</code></td><td>prompt</td><td>Creates a custom slash command from a natural language description, persists it</td></tr>
+        <tr><td><code>/board</code></td><td>prompt</td><td>Views and manages the Kanban board — add cards, move columns, run/execute card work</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Custom Skills</h3>
+    <p>You can create your own slash commands with <code>/skill create a /lint command that runs ESLint and summarizes the errors</code>. The system generates a <code>SkillDefinition</code> and calls <code>skill_create</code>, saving it to <code>~/.custom-agents/skills.json</code>. The new <code>/lint</code> command is immediately available in the current and all future sessions.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 12 — KANBAN                    -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="kanban">
+    <div class="section-header">
+      <span class="section-number">12</span>
+      <h2>Kanban Board</h2>
+    </div>
+
+    <p>The Kanban board is a <strong>file-backed persistent project board</strong> stored at <code>&lt;dataDir&gt;/kanban.json</code>. It gives agents and users a shared visual representation of work items. Unlike the in-memory <code>TaskManager</code> (which tracks ephemeral agent tasks), the Kanban board persists across sessions and represents project-level work items.</p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" width="100%">
+        <!-- Column headers -->
+        <rect x="10" y="10" width="130" height="180" rx="6" fill="#111318" stroke="#232630"/>
+        <text x="75" y="30" fill="#9ba3b5" font-size="10" text-anchor="middle" font-weight="600">BACKLOG</text>
+        <rect x="20" y="40" width="110" height="48" rx="4" fill="#171a21" stroke="#2e3340"/>
+        <text x="75" y="57" fill="#e8eaf0" font-size="9" text-anchor="middle" font-weight="600">Add auth tests</text>
+        <text x="75" y="70" fill="#9ba3b5" font-size="8" text-anchor="middle">medium priority</text>
+        <text x="75" y="82" fill="#5c6478" font-size="8" text-anchor="middle">0/3 tasks done</text>
+
+        <rect x="150" y="10" width="130" height="180" rx="6" fill="#111318" stroke="#232630"/>
+        <text x="215" y="30" fill="#9ba3b5" font-size="10" text-anchor="middle" font-weight="600">PLANNING</text>
+        <rect x="160" y="40" width="110" height="48" rx="4" fill="#171a21" stroke="#2e3340"/>
+        <text x="215" y="57" fill="#e8eaf0" font-size="9" text-anchor="middle" font-weight="600">RAG design</text>
+        <text x="215" y="70" fill="#9ba3b5" font-size="8" text-anchor="middle">high priority</text>
+        <text x="215" y="82" fill="#5c6478" font-size="8" text-anchor="middle">0/5 tasks done</text>
+
+        <rect x="290" y="10" width="140" height="180" rx="6" fill="#0d1117" stroke="#f0b429" stroke-width="1.5"/>
+        <text x="360" y="30" fill="#f0b429" font-size="10" text-anchor="middle" font-weight="600">IN-PROGRESS</text>
+        <rect x="300" y="40" width="120" height="56" rx="4" fill="#171a21" stroke="#f0b429" stroke-width="1"/>
+        <text x="360" y="57" fill="#e8eaf0" font-size="9" text-anchor="middle" font-weight="600">Refactor query.ts</text>
+        <text x="360" y="70" fill="#9ba3b5" font-size="8" text-anchor="middle">high · coder agent</text>
+        <text x="360" y="82" fill="#1de9b6" font-size="8" text-anchor="middle">2/4 tasks done ↑</text>
+        <text x="360" y="90" fill="#5c6478" font-size="8" text-anchor="middle">real-time progress</text>
+
+        <rect x="440" y="10" width="130" height="180" rx="6" fill="#111318" stroke="#232630"/>
+        <text x="505" y="30" fill="#9ba3b5" font-size="10" text-anchor="middle" font-weight="600">REVIEW</text>
+        <rect x="450" y="40" width="110" height="48" rx="4" fill="#171a21" stroke="#2e3340"/>
+        <text x="505" y="57" fill="#e8eaf0" font-size="9" text-anchor="middle" font-weight="600">Types cleanup</text>
+        <text x="505" y="70" fill="#9ba3b5" font-size="8" text-anchor="middle">low priority</text>
+        <text x="505" y="82" fill="#5c6478" font-size="8" text-anchor="middle">4/4 tasks done ✓</text>
+
+        <rect x="580" y="10" width="170" height="180" rx="6" fill="#111318" stroke="#232630"/>
+        <text x="665" y="30" fill="#1de9b6" font-size="10" text-anchor="middle" font-weight="600">DONE</text>
+        <rect x="590" y="40" width="150" height="40" rx="4" fill="#0d1117" stroke="#232630"/>
+        <text x="665" y="56" fill="#5c6478" font-size="9" text-anchor="middle" font-weight="600">Install script</text>
+        <text x="665" y="70" fill="#5c6478" font-size="8" text-anchor="middle">completed</text>
+        <rect x="590" y="86" width="150" height="40" rx="4" fill="#0d1117" stroke="#232630"/>
+        <text x="665" y="102" fill="#5c6478" font-size="9" text-anchor="middle" font-weight="600">Base tool registry</text>
+        <text x="665" y="116" fill="#5c6478" font-size="8" text-anchor="middle">completed</text>
+      </svg>
+    </div>
+
+    <h3>Board Schema</h3>
+    <p>Each <strong>card</strong> has a title, optional description, column (<code>backlog | planning | in-progress | review | done</code>), priority (<code>low | medium | high</code>), labels array, and a list of <strong>sub-tasks</strong>. Sub-tasks are lightweight checklist items with a <code>done</code> boolean. When an agent works on a card, it toggles sub-tasks as it completes each step, providing real-time progress visible to the user via <code>/board</code>.</p>
+
+    <h3>Agent-Driven Card Execution</h3>
+    <p>The <code>/board run "Refactor query.ts"</code> flow is handled by the <code>BoardSkill</code> prompt template. It instructs the AI to: find the card → move it to in-progress → create sub-tasks → spawn the appropriate agent with the card ID and task IDs embedded in the message → verify tasks are toggled → move the card to done. The spawned agent marks sub-tasks complete using <code>kanban</code> tool action <code>toggle_task</code> as it works.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 13 — TASKS                     -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="tasks">
+    <div class="section-header">
+      <span class="section-number">13</span>
+      <h2>Task Management</h2>
+    </div>
+
+    <p>The <strong>TaskManager</strong> (<code>src/tasks/TaskManager.ts</code>) is an in-memory task graph — separate from the Kanban board. Where Kanban tracks persistent project work, TaskManager tracks ephemeral <em>agent execution tasks</em> that live only within a session. It is used primarily by the team system to track teammate execution state and coordinate work distribution.</p>
+
+    <h3>Task State Machine</h3>
+    <div class="flow">
+      <div class="flow-step"><span class="num" style="background:#4dabf7">P</span>pending</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="num" style="background:#f0b429">R</span>running</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="num" style="background:#1de9b6">✓</span>completed</div>
+    </div>
+    <div class="flow" style="margin-top:4px">
+      <div class="flow-step" style="opacity:0.6"><span class="num" style="background:#5c6478">P</span>pending</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step" style="opacity:0.6"><span class="num" style="background:#ff6b6b">!</span>failed</div>
+    </div>
+
+    <p style="margin-top:12px">Tasks support <strong>dependency tracking</strong>: a task can declare it is <code>blockedBy</code> a list of other task IDs. When a blocking task transitions to <code>completed</code>, the TaskManager automatically removes it from all blocked tasks' <code>blockedBy</code> arrays, making those tasks eligible for claiming. The <code>claim()</code> method is a synchronous atomic check — if the task is already claimed or blocked, it returns <code>null</code>.</p>
+
+    <div class="callout blue">
+      <p><strong>Parent-child hierarchy:</strong> When a team is created, a root task is created for the team, and child tasks are created for each teammate. This lets <code>TaskManager.list(&#123; parentId &#125;)</code> quickly retrieve all tasks belonging to a team, and the team's completion is derived from transitioning the root task.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 14 — MEMORY & PERSISTENCE      -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="memory">
+    <div class="section-header">
+      <span class="section-number">14</span>
+      <h2>Memory & Session Persistence</h2>
+    </div>
+
+    <h3>Three-Scope Memory Store</h3>
+    <p>The <code>MemoryStore</code> (<code>src/memory/index.ts</code>) provides file-backed key-value storage across three scopes that differ in lifetime and visibility:</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#f0b429"></span>project</div>
+        <p style="font-size:12px;margin:0">Shared across all sessions in the same project directory. Persists until explicitly deleted. Ideal for storing project-specific facts (architecture decisions, known APIs).</p>
+        <code style="font-size:10px; display:block; margin-top:8px;">~/.custom-agents/memory/project/</code>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#4dabf7"></span>user</div>
+        <p style="font-size:12px;margin:0">Shared across all projects for this user. Persists globally. Good for personal preferences — code style, preferred patterns, shortcuts.</p>
+        <code style="font-size:10px; display:block; margin-top:8px;">~/.custom-agents/memory/user/</code>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#1de9b6"></span>session</div>
+        <p style="font-size:12px;margin:0">Scoped to the current session ID. Cleaned up when the session ends. Useful for temporary scratchpad storage within a single working session.</p>
+        <code style="font-size:10px; display:block; margin-top:8px;">~/.custom-agents/memory/session/&#123;id&#125;/</code>
+      </div>
+    </div>
+
+    <p>Memory is injected into the system prompt via <code>MemoryStore.buildContext()</code>, which assembles a <code>--- Persistent Memory ---</code> section appended to the agent's system prompt before each query loop. Agents can read and write memory using tools, giving them a form of long-term learning across conversations.</p>
+
+    <h3>Session Persistence (Transcript)</h3>
+    <p>The <code>SessionPersistence</code> module (<code>src/persistence/SessionPersistence.ts</code>) saves the full conversation transcript — every message, including tool calls and results — to a JSON file on disk. When you start a new session, you can resume a previous one, and the entire history is reloaded into the query loop's message array.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 15 — MULTI-MODEL               -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="models">
+    <div class="section-header">
+      <span class="section-number">15</span>
+      <h2>Multi-Model Orchestration</h2>
+    </div>
+
+    <p>By default, all agents use the global model configured in <code>~/.custom-agents/config.env</code>. But you can assign different LLM models to different agents through <strong>model profiles</strong> stored in <code>.custom-agents/models.json</code>. This lets you optimize for cost and capability simultaneously: route lightweight explorer tasks to a cheap fast model, while complex coding tasks go to a premium model.</p>
+
+    <pre><span class="comment">// .custom-agents/models.json</span>
+{
+  <span class="str">"version"</span>: <span class="num">1</span>,
+  <span class="str">"profiles"</span>: [
+    {
+      <span class="str">"name"</span>: <span class="str">"fast"</span>,
+      <span class="str">"model"</span>: <span class="str">"openai/gpt-4o-mini"</span>,
+      <span class="str">"apiKey"</span>: <span class="str">"sk-or-v1-..."</span>,
+      <span class="str">"baseUrl"</span>: <span class="str">"https://openrouter.ai/api/v1"</span>
+    },
+    {
+      <span class="str">"name"</span>: <span class="str">"reasoning"</span>,
+      <span class="str">"model"</span>: <span class="str">"anthropic/claude-opus-4"</span>,
+      <span class="str">"apiKey"</span>: <span class="str">"sk-or-v1-..."</span>,
+      <span class="str">"baseUrl"</span>: <span class="str">"https://openrouter.ai/api/v1"</span>
+    }
+  ]
+}</pre>
+
+    <p>The <code>resolveModelConfig()</code> function in <code>src/models/resolveModelConfig.ts</code> is called for each teammate before its query loop starts. It checks the agent definition's optional <code>modelProfile</code> field, looks it up in the <code>ModelProfileStore</code>, and returns the resolved <code>model</code>, <code>apiKey</code>, and <code>baseUrl</code>. If no profile is set, the global config is used — so existing setups require no changes.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 16 — PLUGINS & HOOKS           -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="plugins">
+    <div class="section-header">
+      <span class="section-number">16</span>
+      <h2>Plugin System & Hook Events</h2>
+    </div>
+
+    <h3>Hooks — Lifecycle Events</h3>
+    <p>The <code>HookManager</code> (<code>src/hooks/index.ts</code>) is a typed async event bus. Every major lifecycle event emits a hook, and any module (including plugins) can subscribe to intercept or react to those events without modifying core code.</p>
+
+    <table>
+      <thead><tr><th>Hook Event</th><th>When It Fires</th><th>Payload</th></tr></thead>
+      <tbody>
+        <tr><td><code>query:before</code></td><td>Before the first LLM turn in a query</td><td><code>&#123; messages &#125;</code></td></tr>
+        <tr><td><code>query:after</code></td><td>After query loop completes or errors</td><td><code>&#123; messages, turnCount, error? &#125;</code></td></tr>
+        <tr><td><code>message:assistant</code></td><td>Each time the assistant produces a message</td><td><code>&#123; message &#125;</code></td></tr>
+        <tr><td><code>team:start</code></td><td>When a team begins execution</td><td><code>&#123; teamId, name &#125;</code></td></tr>
+        <tr><td><code>team:complete</code></td><td>When all teammates finish</td><td><code>&#123; teamId, status, duration &#125;</code></td></tr>
+        <tr><td><code>team:teammate:start</code></td><td>When an individual teammate begins</td><td><code>&#123; teamId, teammateId, agentName &#125;</code></td></tr>
+        <tr><td><code>team:teammate:end</code></td><td>When a teammate finishes or fails</td><td><code>&#123; status, output &#125;</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Plugin System</h3>
+    <p>The <code>plugins/</code> module provides the extensibility layer. A plugin can register additional tools (extending the tool registry), subscribe to hooks (adding side effects like logging or notifications), or add new skills (custom slash commands). Plugins are loaded during initialization before the REPL starts, making all their additions available immediately.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 17 — CONFIGURATION             -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="config">
+    <div class="section-header">
+      <span class="section-number">17</span>
+      <h2>Configuration</h2>
+    </div>
+
+    <p>Configuration is read from two sources in priority order: a <strong>project-level <code>.env</code></strong> file in the current working directory (highest priority), falling back to the <strong>global config</strong> at <code>~/.custom-agents/config.env</code>. This lets you override the model or API key per project without touching global settings.</p>
+
+    <pre><span class="comment"># ~/.custom-agents/config.env</span>
+<span class="type">OPENAI_API_KEY</span>=<span class="str">sk-your-key-here</span>
+<span class="type">OPENAI_BASE_URL</span>=<span class="str">https://openrouter.ai/api/v1</span>
+<span class="type">MODEL</span>=<span class="str">openrouter/auto</span>
+<span class="type">LOG_LEVEL</span>=<span class="str">info</span>        <span class="comment"># debug | info | warn | error</span>
+<span class="type">MAX_TURNS</span>=<span class="num">20</span>           <span class="comment"># global default; per-agent overrides apply</span>
+<span class="type">CONTEXT_BUDGET</span>=<span class="num">120000</span>  <span class="comment"># tokens before compaction triggers</span></pre>
+
+    <table>
+      <thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead>
+      <tbody>
+        <tr><td><code>OPENAI_API_KEY</code></td><td>API key for your LLM provider</td><td>—</td></tr>
+        <tr><td><code>OPENAI_BASE_URL</code></td><td>API endpoint — any OpenAI-compatible URL</td><td><code>https://openrouter.ai/api/v1</code></td></tr>
+        <tr><td><code>MODEL</code></td><td>Model identifier string for your provider</td><td><code>openrouter/auto</code></td></tr>
+        <tr><td><code>LOG_LEVEL</code></td><td>Logging verbosity</td><td><code>info</code></td></tr>
+        <tr><td><code>MAX_TURNS</code></td><td>Global max turns per query loop</td><td><code>20</code></td></tr>
+        <tr><td><code>CONTEXT_BUDGET</code></td><td>Token budget before compaction</td><td><code>120000</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Supported LLM Providers</h3>
+    <div class="grid-3">
+      <div class="card"><div class="card-title">OpenRouter</div><p style="font-size:12px;margin:0">Access 100+ models through a single API. Set <code>OPENAI_BASE_URL=https://openrouter.ai/api/v1</code>. Recommended for flexibility.</p></div>
+      <div class="card"><div class="card-title">OpenAI</div><p style="font-size:12px;margin:0">Direct connection to GPT-4o, GPT-4o Mini, and other OpenAI models.</p></div>
+      <div class="card"><div class="card-title">Ollama / LM Studio</div><p style="font-size:12px;margin:0">Fully local, offline operation. No data leaves your machine. Set base URL to localhost.</p></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 18 — INSTALLATION              -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="install">
+    <div class="section-header">
+      <span class="section-number">18</span>
+      <h2>Installation & Development</h2>
+    </div>
+
+    <h3>One-Liner Install</h3>
+    <pre><span class="comment"># Install (or update)</span>
+<span class="fn">curl</span> -fsSL https://raw.githubusercontent.com/iabhisekbosepm/custom_agent/main/install.sh | bash
+
+<span class="comment"># The installer will:</span>
+<span class="comment"># 1. Install Bun if not present</span>
+<span class="comment"># 2. Clone source to ~/.custom-agents-cli/</span>
+<span class="comment"># 3. Prompt for OPENAI_API_KEY, OPENAI_BASE_URL, MODEL</span>
+<span class="comment"># 4. Register the 'custom-agents' command globally</span>
+
+<span class="comment"># Then use it anywhere</span>
+<span class="fn">cd</span> ~/any-project
+<span class="fn">custom-agents</span></pre>
+
+    <h3>Development Setup</h3>
+    <pre><span class="fn">git</span> clone https://github.com/iabhisekbosepm/custom_agent.git
+<span class="fn">cd</span> custom_agent
+<span class="fn">cp</span> .env.example .env      <span class="comment"># Add your API key</span>
+<span class="fn">bun</span> install               <span class="comment"># Install dependencies</span>
+<span class="fn">bun</span> run src/index.ts      <span class="comment"># Start</span>
+<span class="fn">bun</span> --watch run src/index.ts  <span class="comment"># Dev mode with hot reload</span>
+<span class="fn">bun</span> test                  <span class="comment"># Run tests</span>
+<span class="fn">bun</span> x tsc --noEmit        <span class="comment"># Type check</span></pre>
+  </section>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SECTION 19 — TECH STACK                -->
+  <!-- ══════════════════════════════════════ -->
+  <section id="techstack">
+    <div class="section-header">
+      <span class="section-number">19</span>
+      <h2>Tech Stack</h2>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#f0b429"></span>Bun — Runtime</div>
+        <p style="font-size:12px;margin:0">Replaces Node.js. Faster startup, native TypeScript support, built-in <code>Bun.file()</code> and <code>Bun.write()</code> APIs. Test runner included. The single-threaded async event loop makes in-memory concurrency safe without locks.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#4dabf7"></span>React 18 + Ink — Terminal UI</div>
+        <p style="font-size:12px;margin:0">Ink renders React components as terminal output using flexbox layout. State updates (e.g., a streaming token) trigger a React re-render which updates the terminal in-place — just like a browser SPA, but in your terminal.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#cc5de8"></span>TypeScript (strict) — Language</div>
+        <p style="font-size:12px;margin:0">Full strict mode. All messages, tool inputs/outputs, agent definitions, and state objects are typed. Zod is used for runtime validation of tool inputs before execution.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:#1de9b6"></span>OpenAI API (compatible) — LLM</div>
+        <p style="font-size:12px;margin:0">The entire system is built around the OpenAI <code>/v1/chat/completions</code> streaming API, function-calling schema, and tool result messages. Any provider that implements this interface works — OpenRouter, Ollama, LM Studio, etc.</p>
+      </div>
+    </div>
+
+    <h3>Project Structure (annotated)</h3>
+    <pre>src/
+├── agents/        <span class="comment"># AgentDefinition type, AgentRouter, 5 builtin agents, customAgentStore</span>
+├── components/    <span class="comment"># Ink terminal UI: message bubbles, streaming, diffs, team panel</span>
+├── entrypoints/   <span class="comment"># CLI entry point, initialization, dependency wiring</span>
+├── hooks/         <span class="comment"># HookManager: typed async lifecycle event bus</span>
+├── kanban/        <span class="comment"># KanbanStore: file-backed board, cards, sub-tasks</span>
+├── memory/        <span class="comment"># MemoryStore: 3-scope key-value file storage</span>
+├── models/        <span class="comment"># ModelProfileStore: per-agent LLM config, resolveModelConfig</span>
+├── persistence/   <span class="comment"># SessionPersistence: save/load conversation transcripts</span>
+├── plugins/       <span class="comment"># Extensibility: load tools/hooks/skills from plugins</span>
+├── query/         <span class="comment"># Core engine: runQueryLoop, streamOpenAI, compaction</span>
+├── screens/       <span class="comment"># Terminal screens: REPL input, session manager</span>
+├── services/      <span class="comment"># Background services startup/shutdown</span>
+├── skills/        <span class="comment"># SkillDefinition: 11 builtin slash commands, customSkillStore</span>
+├── state/         <span class="comment"># AppStateStore: reactive state; store.ts: createStore()</span>
+├── tasks/         <span class="comment"># Task.ts: state machine; TaskManager: graph, deps, claiming</span>
+├── teams/         <span class="comment"># TeamManager, Mailbox, TeamTypes, buildTeammateRegistry</span>
+├── tools/         <span class="comment"># 35+ tool implementations (one dir per tool), registry, orchestration</span>
+├── types/         <span class="comment"># Shared types: messages, config, etc.</span>
+└── utils/         <span class="comment"># logger, diff renderer, env loader, id generator, shutdown</span></pre>
+  </section>
+
+</main>
+
+<footer>
+  <span>Custom Agents — Full Technical Documentation</span>
+  <span>github.com/iabhisekbosepm/custom_agent · MIT License</span>
+</footer>
+
+<script>
+  // Active nav link tracking
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
